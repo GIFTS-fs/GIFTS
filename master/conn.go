@@ -7,15 +7,6 @@ import (
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
-const (
-	// RPCPathNameNode the path that NameNode listens to
-	RPCPathNameNode = "/_gifts_namenode_"
-	// RPCMethodCreate ...
-	RPCMethodCreate = "Master.Create"
-	// RPCMethodRead ...
-	RPCMethodRead = "Master.Read"
-)
-
 // Conn is the connection to one Master.
 // It is cache safe (i.e. can reuse as long as the server is alive, no matter failed in between)
 type Conn struct {
@@ -27,7 +18,7 @@ type Conn struct {
 // NewConn constructor for Client.Conn
 func NewConn(addr string) *Conn {
 	c := Conn{addr: addr}
-	rpcClient := gifts.NewRPCClient(addr, gifts.RPCPathNameNode)
+	rpcClient := gifts.NewRPCClient(addr, RPCPathMaster)
 	c.makeCreate(rpcClient)
 	c.makeRead(rpcClient)
 	return &c
