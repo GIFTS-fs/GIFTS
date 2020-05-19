@@ -18,6 +18,6 @@ type BlockAssign struct {
 
 // FileBlocks is the return type of Master.Read()
 type FileBlocks struct {
-	Fsize uint64   // size of the file, to handle padding
-	Nodes []string // Nodes[i] stores the addr of DataNode with ith Block
+	Fsize       uint64        // size of the file, to handle padding
+	Assignments []BlockAssign // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) == 1
 }
