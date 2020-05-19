@@ -31,9 +31,9 @@ func (c *Client) storageConn(addr string) *storage.Conn {
 	return conn.(*storage.Conn)
 }
 
-// Create a file with file name, file size, and replication factor.
+// Store a file with file name, file size, and replication factor.
 // Return error if fname already exists, network failure etc.
-func (c *Client) Create(fname string, fsize uint64, rfactor int, data []byte) error {
+func (c *Client) Store(fname string, fsize uint64, rfactor int, data []byte) error {
 	assignments, err := c.master.Create(fname, fsize, rfactor)
 	if err != nil {
 		return err
@@ -91,5 +91,6 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	}
 
 	// truncate the padding
+	// TODO: off by one????
 	return data[:bufSize-paddingSize], nil
 }
