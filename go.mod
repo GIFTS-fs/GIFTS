@@ -1,3 +1,3 @@
-module github.com/GIFTS-fs/GIFTS
+module GIFTS
 
 go 1.14
