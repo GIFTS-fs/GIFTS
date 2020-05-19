@@ -15,7 +15,7 @@ type Conn struct {
 	Get  GetFunc
 }
 
-// NewConn constructor for Client.Conn
+// NewConn constructor for Storage.Conn
 func NewConn(addr string) *Conn {
 	c := Conn{addr: addr}
 	rpcClient := gifts.NewRPCClient(addr, RPCPathStorage)
