@@ -5,21 +5,28 @@ import "net/rpc"
 // RPCCall is the ingredient of a Request
 type RPCCall func(*rpc.Client) error
 
-// RPCClient is a factory of RPCCalls
+// RPCClient is the client for RPC Calls that
+// delays the connecting until first request,
+// caches the connection,
+// and automatically reconnects after failure.
+// user of RPCClient can have guaranteed connection
+// as long as the server at addr is alive
+// without worrying about the liveness of the underneath connection
 type RPCClient struct {
 	addr string
-	conn *rpc.Client // will connect on first RPC call
+	path string
+	conn *rpc.Client // will connect on first call
 }
 
 // NewRPCClient constructor for RPCFactory
-func NewRPCClient(addr string) *RPCClient {
-	// return &RPCFactory{logger: newLogger(logPrefixNameClientRPC, addr), addr: addr}
-	return &RPCClient{addr: addr}
+func NewRPCClient(addr string, path string) *RPCClient {
+	// return &RPCClient{logger: newLogger(logPrefixNameClientRPC, addr)}
+	return &RPCClient{addr: addr, path: path}
 }
 
 func (f *RPCClient) callRPCUnit(call RPCCall) (dialErr, callErr error) {
 	if dialErr = f.Dial(); dialErr != nil {
-		// client.logger.Printf("Salute error: %v", err.Error())
+		// client.logger.Printf("Dial error: %v", err.Error())
 		return
 	}
 
@@ -42,7 +49,8 @@ func (f *RPCClient) callRPC(call RPCCall) (err error) {
 // Dial the server: Dial if not connected
 func (f *RPCClient) Dial() (err error) {
 	if f.conn == nil {
-		f.conn, err = rpc.DialHTTPPath("tcp", f.addr, GIFTS_RPC_PATH)
+		// WARN: no concurrent control
+		f.conn, err = rpc.DialHTTPPath("tcp", f.addr, f.path)
 	}
 	return
 }
@@ -50,7 +58,10 @@ func (f *RPCClient) Dial() (err error) {
 // Close the RPC connection
 func (f *RPCClient) Close() (err error) {
 	if f.conn != nil {
-		err = f.conn.Close()
+		var c *rpc.Client
+		// WARN: no concurrenct control
+		c, f.conn = f.conn, nil
+		err = c.Close()
 	}
 	return
 }
