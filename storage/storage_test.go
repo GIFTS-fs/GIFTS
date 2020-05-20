@@ -5,8 +5,9 @@ import (
 	"log"
 	"testing"
 
-	gifts "GIFTS"
-	"GIFTS/test"
+	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/structure"
+	"github.com/GIFTS-fs/GIFTS/test"
 )
 
 func TestStorage_Set(t *testing.T) {
@@ -15,20 +16,20 @@ func TestStorage_Set(t *testing.T) {
 	// Set new data
 	log.Println("TestStorage_Set: Starting test #1")
 	s := NewStorage()
-	data := gifts.Block("data1")
-	err := s.Set("id1", &data)
+	kv := &structure.BlockKV{ID: "id1", Data: []byte("data 1")}
+	err := s.Set(kv, nil)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
-	for i := range data {
-		test.AF(t, data[i] == s.blocks["id1"][i], fmt.Sprintf("Expected %c but found %c", data[i], s.blocks["id1"]))
+	for i := range kv.Data {
+		test.AF(t, kv.Data[i] == s.blocks["id1"][i], fmt.Sprintf("Expected %c but found %c", kv.Data[i], s.blocks["id1"]))
 	}
 
 	// Overwrite old data
 	log.Println("TestStorage_Set: Starting test #2")
-	data = gifts.Block("new data2")
-	err = s.Set("id1", &data)
+	kv.Data = gifts.Block("new data2")
+	err = s.Set(kv, nil)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
-	for i := range data {
-		test.AF(t, data[i] == s.blocks["id1"][i], fmt.Sprintf("Expected %c but found %c", data[i], s.blocks["id1"]))
+	for i := range kv.Data {
+		test.AF(t, kv.Data[i] == s.blocks["id1"][i], fmt.Sprintf("Expected %c but found %c", kv.Data[i], s.blocks["id1"]))
 	}
 
 	// Parallel sets
@@ -37,8 +38,11 @@ func TestStorage_Set(t *testing.T) {
 	done := make(chan bool, nSets)
 	for i := 0; i < nSets; i++ {
 		go func(i int) {
-			data := gifts.Block(fmt.Sprintf("data_%d", i))
-			err := s.Set(fmt.Sprintf("id_%d", i), &data)
+			kv := new(structure.BlockKV)
+			kv.ID = fmt.Sprintf("id_%d", i)
+			kv.Data = gifts.Block(fmt.Sprintf("data_%d", i))
+
+			err := s.Set(kv, nil)
 			test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 			done <- true
 		}(i)
@@ -50,7 +54,7 @@ func TestStorage_Set(t *testing.T) {
 
 	for i := 0; i < nSets; i++ {
 		id := fmt.Sprintf("id_%d", i)
-		data = gifts.Block(fmt.Sprintf("data_%d", i))
+		data := gifts.Block(fmt.Sprintf("data_%d", i))
 
 		for j := range data {
 			expected := data[j]
@@ -121,13 +125,13 @@ func TestStorage_Unset(t *testing.T) {
 	// Missing ID
 	log.Println("TestStorage_Set: Starting test #1")
 	s := NewStorage()
-	err := s.Unset("id1")
+	err := s.Unset("id1", nil)
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Unset data
 	log.Println("TestStorage_Set: Starting test #2")
 	s.blocks["id1"] = []byte("data 1")
-	err = s.Unset("id1")
+	err = s.Unset("id1", nil)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Unset failed: %v", err))
 	test.AF(t, len(s.blocks["id1"]) == 0, fmt.Sprintf("Expected no data, found %q", s.blocks["id1"]))
 
@@ -143,7 +147,7 @@ func TestStorage_Unset(t *testing.T) {
 	done := make(chan bool, nUnsets)
 	for i := 0; i < nUnsets; i++ {
 		go func(i int) {
-			err := s.Unset(fmt.Sprintf("id_%d", i))
+			err := s.Unset(fmt.Sprintf("id_%d", i), nil)
 			test.AF(t, err == nil, fmt.Sprintf("Storage.Unset failed: %v", err))
 			done <- true
 		}(i)

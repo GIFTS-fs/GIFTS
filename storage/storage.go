@@ -3,12 +3,16 @@ package storage
 import (
 	"fmt"
 	"log"
+	"net"
+	"net/http"
+	"net/rpc"
 	"sync"
 
-	gifts "GIFTS"
+	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
-// Storage is a concurrency-safe key-value storage.
+// Storage is a concurrency-safe key-value store.
 type Storage struct {
 	blocks     map[string]gifts.Block
 	blocksLock sync.RWMutex
@@ -19,14 +23,37 @@ func NewStorage() *Storage {
 	return &Storage{blocks: make(map[string]gifts.Block)}
 }
 
+// ServeRPC makes the raw Storage accessible via RPC at the specified IP
+// address and port.
+func ServeRPC(s *Storage, addr string) error {
+	server := rpc.NewServer()
+	server.Register(s)
+
+	oldMux := http.DefaultServeMux
+	mux := http.NewServeMux()
+	http.DefaultServeMux = mux
+
+	server.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
+
+	http.DefaultServeMux = oldMux
+
+	listener, e := net.Listen("tcp", addr)
+	if e != nil {
+		return e
+	}
+
+	go http.Serve(listener, mux)
+	return nil
+}
+
 // Set sets the data associated with the block's ID
-func (s *Storage) Set(id string, data *gifts.Block) error {
-	log.Printf("Storage.Set(%q, %q)", id, *data)
+func (s *Storage) Set(kv *structure.BlockKV, ignore *bool) error {
+	log.Printf("Storage.Set(%q, %q)", kv.ID, kv.Data)
 
 	// Store data into block
 	s.blocksLock.Lock()
-	s.blocks[id] = make([]byte, len(*data))
-	copy(s.blocks[id], *data)
+	s.blocks[kv.ID] = make([]byte, len(kv.Data))
+	copy(s.blocks[kv.ID], kv.Data)
 	s.blocksLock.Unlock()
 
 	return nil
@@ -44,17 +71,21 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 
 	// Check if ID exists
 	if !found {
-		return fmt.Errorf("Block with ID %s does not exist", id)
+		msg := fmt.Sprintf("Block with ID %s does not exist", id)
+		log.Printf("Storage.Get(%q) => %q", id, msg)
+		return fmt.Errorf(msg)
 	}
 
 	// Copy data
 	*ret = make([]byte, len(block))
 	copy(*ret, block)
+
+	log.Printf("Storage.Get(%q) => %d bytes", id, len(block))
 	return nil
 }
 
 // Unset deletes the data associated with the block's ID
-func (s *Storage) Unset(id string) error {
+func (s *Storage) Unset(id string, ignore *bool) error {
 	// Load block
 	s.blocksLock.RLock()
 	_, found := s.blocks[id]
