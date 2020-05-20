@@ -37,11 +37,13 @@ func ServeRPC(s *Storage, addr string) error {
 
 	http.DefaultServeMux = oldMux
 
-	listener, e := net.Listen("tcp", addr)
-	if e != nil {
-		return e
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Printf("ServeRPC(%q) => %v", addr, err)
+		return err
 	}
 
+	log.Printf("ServeRPC(%q) => success", addr)
 	go http.Serve(listener, mux)
 	return nil
 }
@@ -93,7 +95,9 @@ func (s *Storage) Unset(id string, ignore *bool) error {
 
 	// Check if ID exists
 	if !found {
-		return fmt.Errorf("Block with ID %s does not exist", id)
+		msg := fmt.Sprintf("Block with ID %s does not exist", id)
+		log.Printf("Storage.Unset(%q) => %q", id, msg)
+		return fmt.Errorf(msg)
 	}
 
 	// Delete block
@@ -101,5 +105,6 @@ func (s *Storage) Unset(id string, ignore *bool) error {
 	delete(s.blocks, id)
 	s.blocksLock.Unlock()
 
+	log.Printf("Storage.Unset(%q) => success", id)
 	return nil
 }
