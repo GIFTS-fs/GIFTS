@@ -22,4 +22,4 @@ type ReadRPC func(fname string, ret *structure.FileBlocks)
 type CreateFunc func(fname string, fsize uint64, rfactor uint) ([]structure.BlockAssign, error)
 
 // ReadFunc is the function signature for Master.Read()
-type ReadFunc func(fname string) (structure.FileBlocks, error)
+type ReadFunc func(fname string) (*structure.FileBlocks, error)

@@ -125,7 +125,7 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 	}
 	for _, replica := range fb.Assignments {
 		if len(replica.Replicas) != 1 {
-			msg := fmt.Sprintf("Master returned invalid replica %v", replica)
+			msg := fmt.Sprintf("Master returned too many replicas: %v", replica)
 			log.Printf("Client.Read(fname=%q) => %q", fname, msg)
 			return fmt.Errorf(msg)
 		}
@@ -133,22 +133,17 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 
 	// Handle empty files as a special case
 	if fb.Fsize == 0 {
+		log.Printf("Client.Read(fname=%q) => 0 bytes", fname)
 		return nil
 	}
 
 	// Loop over every block
 	// TODO: parallelize this with go routines
 	*ret = make([]byte, fb.Fsize)
+	temp := gifts.Block{}
 	for i, block := range fb.Assignments {
 		id := block.BlockID
 		replica := block.Replicas[0]
-
-		startIndex := i * gifts.GiftsBlockSize
-		endIndex := uint64((i + 1) * gifts.GiftsBlockSize)
-		if endIndex > fb.Fsize {
-			endIndex = fb.Fsize
-		}
-		temp := gifts.Block((*ret)[startIndex:endIndex])
 
 		// Load block from remote Storage
 		rpcs, _ := c.storages.LoadOrStore(replica, storage.NewRPCStorage(replica))
@@ -156,6 +151,13 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 			log.Printf("Client.Read(fname=%q) => %v", fname, err)
 			return err
 		}
+
+		startIndex := i * gifts.GiftsBlockSize
+		endIndex := uint64((i + 1) * gifts.GiftsBlockSize)
+		if endIndex > fb.Fsize {
+			endIndex = fb.Fsize
+		}
+		copy((*ret)[startIndex:endIndex], temp)
 	}
 
 	log.Printf("Client.Read(fname=%q) => %d bytes", fname, fb.Fsize)

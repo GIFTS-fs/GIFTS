@@ -41,8 +41,8 @@ func (c *Conn) makeCreate(rcli *gifts.RPCClient) {
 
 // TODO: fix hard-coding for RPC
 func (c *Conn) makeRead(rcli *gifts.RPCClient) {
-	c.Read = func(fname string) (structure.FileBlocks, error) {
-		var ret structure.FileBlocks
+	c.Read = func(fname string) (*structure.FileBlocks, error) {
+		var ret *structure.FileBlocks
 		err := rcli.Call(func(conn *rpc.Client) error {
 			return conn.Call(
 				RPCMethodRead,

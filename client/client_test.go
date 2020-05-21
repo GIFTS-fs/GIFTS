@@ -142,21 +142,101 @@ func TestClient_Read(t *testing.T) {
 	storage.ServeRPC(s1, addr1)
 	storage.ServeRPC(s2, addr2)
 
-	var data []byte
+	var data, ret []byte
 
 	// File does not exist
+	log.Println("TestClient_Read: Starting test #1")
+	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+		return nil, fmt.Errorf("%q does not exist", fname)
+	}
+	err := c.Read("Invalid file", &ret)
+	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Master fails
+	log.Println("TestClient_Read: Starting test #2")
+	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+		return nil, fmt.Errorf("Master failed")
+	}
+	err = c.Read("filename", &ret)
+	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Master returns incorrect number of assignments
+	log.Println("TestClient_Read: Starting test #3")
+	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+		ret := structure.FileBlocks{Fsize: gifts.GiftsBlockSize * 2, Assignments: []structure.BlockAssign{}}
+		return &ret, nil
+	}
+	err = c.Read("filename", &ret)
+	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Master returns incorrect number of Storage nodes for each block
+	log.Println("TestClient_Read: Starting test #4")
+	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+		block := structure.BlockAssign{BlockID: "id1", Replicas: []string{"r1", "r2"}}
+		ret := structure.FileBlocks{Fsize: 1, Assignments: []structure.BlockAssign{block}}
+		return &ret, nil
+	}
+	err = c.Read("filename", &ret)
+	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Storage node fails
+	log.Println("TestClient_Read: Starting test #5")
+	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+		block := structure.BlockAssign{BlockID: "id1", Replicas: []string{"r1"}}
+		ret := structure.FileBlocks{Fsize: 1, Assignments: []structure.BlockAssign{block}}
+		return &ret, nil
+	}
+	err = c.Read("filename", &ret)
+	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Empty file
+	log.Println("TestClient_Read: Starting test #6")
+	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+		ret := structure.FileBlocks{Fsize: 0, Assignments: []structure.BlockAssign{}}
+		return &ret, nil
+	}
+	err = c.Read("emptyfile", &ret)
+	test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+	test.AF(t, len(ret) == 0, fmt.Sprintf("Expected 0 bytes, found %q", ret))
 
 	// File with one block
+	log.Println("TestClient_Read: Starting test #7")
+	data = []byte("Hello World")
+	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+		block := structure.BlockAssign{BlockID: "file_1_1", Replicas: []string{addr1}}
+		ret := structure.FileBlocks{Fsize: uint64(len(data)), Assignments: []structure.BlockAssign{block}}
+		return &ret, nil
+	}
+
+	kv := structure.BlockKV{ID: "file_1_1", Data: gifts.Block(data)}
+	err = s1.Set(&kv, new(bool))
+	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
+
+	err = c.Read("filename", &ret)
+	test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+	test.AF(t, string(ret) == string(data), fmt.Sprintf("Expected %q, found %q", data, ret))
 
 	// File with multiple blocks
+	log.Println("TestClient_Read: Starting test #8")
+	expected := strings.Repeat("test string", 1+(gifts.GiftsBlockSize/len("test string")))
+	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+		block1 := structure.BlockAssign{BlockID: "file_2_1", Replicas: []string{addr1}}
+		block2 := structure.BlockAssign{BlockID: "file_2_2", Replicas: []string{addr2}}
+		fsize := uint64(len(expected))
+
+		ret := structure.FileBlocks{Fsize: fsize, Assignments: []structure.BlockAssign{block1, block2}}
+		return &ret, nil
+	}
+
+	kv = structure.BlockKV{ID: "file_2_1", Data: gifts.Block(expected[:gifts.GiftsBlockSize])}
+	err = s1.Set(&kv, new(bool))
+	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
+
+	kv = structure.BlockKV{ID: "file_2_2", Data: gifts.Block(expected[gifts.GiftsBlockSize:])}
+	err = s2.Set(&kv, new(bool))
+	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
+
+	err = c.Read("file_2", &ret)
+	test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+	test.AF(t, string(ret) == expected, fmt.Sprintf("Expected %q, found %q", expected, ret))
 }
