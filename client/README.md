@@ -9,8 +9,10 @@
 //		- The Master does not give us enough blocks in which to store the data
 //		- There is a network error (this is fatal and cannot be recovered from)
 func Store(fname string, rfactor uint, data []byte) error{
-    
+    ...
 }
 
-func (c *Client) Read(fname string) ([]byte, error)
+func (c *Client) Read(fname string) ([]byte, error) {
+    ...
+}
 ```

@@ -76,8 +76,8 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	for i := uint64(0); i < nBlocks; i++ {
 		startIndex := i * gifts.GiftsBlockSize
 		endIndex := (i + 1) * gifts.GiftsBlockSize
-		if endIndex > fsize-1 {
-			endIndex = fsize - 1
+		if endIndex > fsize {
+			endIndex = fsize
 		}
 
 		var b gifts.Block = data[startIndex:endIndex]
@@ -85,8 +85,8 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 		// Write each block to the specified Storage nodes
 		// TODO: Parallelize this with go statements
 		for _, addr := range assignments[i].Replicas {
-			rpcs := storage.NewRPCStorage(addr)
-			if err := rpcs.Set(&structure.BlockKV{ID: assignments[i].BlockID, Data: b}); err != nil {
+			rpcs, _ := c.storages.LoadOrStore(addr, storage.NewRPCStorage(addr))
+			if err := rpcs.(*storage.RPCStorage).Set(&structure.BlockKV{ID: assignments[i].BlockID, Data: b}); err != nil {
 				log.Printf("Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
 				return err
 			}

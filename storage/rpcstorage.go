@@ -27,7 +27,6 @@ func (s *RPCStorage) connect() (err error) {
 
 // Set sets the data associated with the block's ID
 func (s *RPCStorage) Set(kv *structure.BlockKV) error {
-	log.Printf("RPCStorage.Set(%q, %q)", kv.ID, kv.Data)
 	var err error
 
 	// If the Call returns an error, try reconnecting to the server and making the call again
@@ -35,7 +34,7 @@ func (s *RPCStorage) Set(kv *structure.BlockKV) error {
 		// Connect to the server
 		if s.conn == nil {
 			if err = s.connect(); err != nil {
-				return err
+				break
 			}
 		}
 
@@ -47,6 +46,12 @@ func (s *RPCStorage) Set(kv *structure.BlockKV) error {
 			s.conn.Close()
 			s.conn = nil
 		}
+	}
+
+	if err == nil {
+		log.Printf("%q: RPCStorage.Set(%q, %d bytes) => success", s.addr, kv.ID, len(kv.Data))
+	} else {
+		log.Printf("%q: RPCStorage.Set(%q, %d bytes) => %v", s.addr, kv.ID, len(kv.Data), err)
 	}
 
 	return err
@@ -62,7 +67,7 @@ func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 		// Connect to the server
 		if s.conn == nil {
 			if err = s.connect(); err != nil {
-				return err
+				break
 			}
 		}
 
@@ -79,6 +84,12 @@ func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 		}
 	}
 
+	if err == nil {
+		log.Printf("%q: RPCStorage.Get(%q) => %d bytes", s.addr, id, len(*ret))
+	} else {
+		log.Printf("%q: RPCStorage.Get(%q) => %v", s.addr, id, err)
+	}
+
 	return err
 }
 
@@ -91,7 +102,7 @@ func (s *RPCStorage) Unset(id string, ignore *bool) error {
 		// Connect to the server
 		if s.conn == nil {
 			if err = s.connect(); err != nil {
-				return err
+				break
 			}
 		}
 
@@ -103,6 +114,12 @@ func (s *RPCStorage) Unset(id string, ignore *bool) error {
 			s.conn.Close()
 			s.conn = nil
 		}
+	}
+
+	if err == nil {
+		log.Printf("%q: RPCStorage.Unset(%q) => success", s.addr, id)
+	} else {
+		log.Printf("%q: RPCStorage.Unset(%q) => %v", s.addr, id, err)
 	}
 
 	return err

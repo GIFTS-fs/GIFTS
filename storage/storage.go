@@ -50,7 +50,7 @@ func ServeRPC(s *Storage, addr string) error {
 
 // Set sets the data associated with the block's ID
 func (s *Storage) Set(kv *structure.BlockKV, ignore *bool) error {
-	log.Printf("Storage.Set(%q, %q)", kv.ID, kv.Data)
+	log.Printf("Storage.Set(%q, %d bytes)", kv.ID, len(kv.Data))
 
 	// Store data into block
 	s.blocksLock.Lock()
