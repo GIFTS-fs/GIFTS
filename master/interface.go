@@ -19,7 +19,7 @@ type CreateRPC func(req *structure.FileCreateReq, ret *[]structure.BlockAssign)
 type ReadRPC func(fname string, ret *structure.FileBlocks)
 
 // CreateFunc is the function signature for Master.Create()
-type CreateFunc func(fname string, fsize uint64, rfactor int) ([]structure.BlockAssign, error)
+type CreateFunc func(fname string, fsize uint64, rfactor uint) ([]structure.BlockAssign, error)
 
 // ReadFunc is the function signature for Master.Read()
 type ReadFunc func(fname string) (structure.FileBlocks, error)
