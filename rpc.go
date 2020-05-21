@@ -1,6 +1,8 @@
 package gifts
 
-import "net/rpc"
+import (
+	"net/rpc"
+)
 
 // RPCCall is the ingredient of a Request
 type RPCCall func(*rpc.Client) error
@@ -13,6 +15,7 @@ type RPCCall func(*rpc.Client) error
 // as long as the server at addr is alive
 // without worrying about the liveness of the underneath connection
 type RPCClient struct {
+	// logger *gifts.Logger
 	addr string
 	path string
 	conn *rpc.Client // will connect on first call
@@ -20,18 +23,18 @@ type RPCClient struct {
 
 // NewRPCClient constructor for RPCFactory
 func NewRPCClient(addr string, path string) *RPCClient {
-	// return &RPCClient{logger: newLogger(logPrefixNameClientRPC, addr)}
+	// return &RPCClient{logger: gifts.NewLogger("RPCClient", addr, false), addr: addr, path: path}
 	return &RPCClient{addr: addr, path: path}
 }
 
 func (f *RPCClient) callRPCUnit(call RPCCall) (dialErr, callErr error) {
 	if dialErr = f.Dial(); dialErr != nil {
-		// client.logger.Printf("Dial error: %v", err.Error())
+		// f.logger.Printf("Dial error: %v", dialErr.Error())
 		return
 	}
 
 	if callErr = call(f.conn); callErr != nil {
-		// client.logger.Printf("call error: %v", err.Error())
+		// f.logger.Printf("call error: %v", callErr.Error())
 		f.Close()
 	}
 	return
@@ -49,7 +52,7 @@ func (f *RPCClient) callRPC(call RPCCall) (err error) {
 // Dial the server: Dial if not connected
 func (f *RPCClient) Dial() (err error) {
 	if f.conn == nil {
-		// WARN: no concurrent control
+		// WARN: no concurrent control for performance concern
 		f.conn, err = rpc.DialHTTPPath("tcp", f.addr, f.path)
 	}
 	return
@@ -59,14 +62,18 @@ func (f *RPCClient) Dial() (err error) {
 func (f *RPCClient) Close() (err error) {
 	if f.conn != nil {
 		var c *rpc.Client
-		// WARN: no concurrenct control
+		// WARN: no concurrenct control for performance concern
 		c, f.conn = f.conn, nil
-		err = c.Close()
+		// since no concurrency control, c might be nil
+		if c != nil {
+			err = c.Close()
+		}
 	}
 	return
 }
 
-// Call the RPCCall
+// Call the RPCCall.
+// Example usage: Call(func(r *rpc.Client) error {return r.Call("RPCMethod", arg, ret)})
 func (f *RPCClient) Call(call RPCCall) error {
 	return f.callRPC(call)
 }
