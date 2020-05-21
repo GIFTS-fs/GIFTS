@@ -60,7 +60,9 @@ func (s *RPCStorage) Set(kv *structure.BlockKV) error {
 // Get gets the data associated with the block's ID
 func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 	var err error
-	*ret = (*ret)[:0]
+
+	// Clear return value
+	*ret = make([]byte, 0)
 
 	// If the Call returns an error, try reconnecting to the server and making the call again
 	for try := 0; try < 2; try++ {

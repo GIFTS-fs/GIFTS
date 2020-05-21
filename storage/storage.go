@@ -64,7 +64,7 @@ func (s *Storage) Set(kv *structure.BlockKV, ignore *bool) error {
 // Get gets the data associated with the block's ID
 func (s *Storage) Get(id string, ret *gifts.Block) error {
 	// Clear the return value
-	*ret = (*ret)[:0]
+	*ret = make([]byte, 0)
 
 	// Load block
 	s.blocksLock.RLock()

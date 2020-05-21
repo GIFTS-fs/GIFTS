@@ -24,14 +24,18 @@ func TestClient_Store(t *testing.T) {
 	storage.ServeRPC(s1, addr1)
 	storage.ServeRPC(s2, addr2)
 
+	var data []byte
+
 	// Empty file  name
 	log.Println("TestClient_Store: Starting test #1")
-	err := c.Store("", 1, []byte(""))
+	data = []byte("")
+	err := c.Store("", 1, &data)
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// rfactor is 0
 	log.Println("TestClient_Store: Starting test #2")
-	err = c.Store("filename", 0, []byte(""))
+	data = []byte("")
+	err = c.Store("filename", 0, &data)
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Valid call but Master returns incorrect number of blocks
@@ -40,7 +44,8 @@ func TestClient_Store(t *testing.T) {
 		block := structure.BlockAssign{BlockID: "ID", Replicas: []string{"r1"}}
 		return []structure.BlockAssign{block, block}, nil
 	}
-	err = c.Store("filename_1", 1, []byte("Hello World"))
+	data = []byte("Hello World")
+	err = c.Store("filename_1", 1, &data)
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Master failure
@@ -48,7 +53,8 @@ func TestClient_Store(t *testing.T) {
 	c.master.Create = func(fname string, fsize uint64, rfactor uint) ([]structure.BlockAssign, error) {
 		return nil, fmt.Errorf("Master error")
 	}
-	err = c.Store("filename_1", 1, []byte("Hello World"))
+	data = []byte("Hello World")
+	err = c.Store("filename_1", 1, &data)
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Valid call with no data
@@ -56,7 +62,8 @@ func TestClient_Store(t *testing.T) {
 	c.master.Create = func(fname string, fsize uint64, rfactor uint) ([]structure.BlockAssign, error) {
 		return []structure.BlockAssign{}, nil
 	}
-	err = c.Store("filename_1", 1, []byte(""))
+	data = []byte("")
+	err = c.Store("filename_1", 1, &data)
 	test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: \"%v\"", err))
 
 	// Valid call with less than one block of data and one replica
@@ -67,7 +74,8 @@ func TestClient_Store(t *testing.T) {
 	}
 
 	expected := "Hello World"
-	err = c.Store("filename_1", 1, []byte(expected))
+	data = []byte(expected)
+	err = c.Store("filename_1", 1, &data)
 	test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: \"%v\"", err))
 
 	ret := gifts.Block{}
@@ -84,7 +92,8 @@ func TestClient_Store(t *testing.T) {
 	}
 
 	expected = strings.Repeat("test string", 1+(gifts.GiftsBlockSize/len("test string")))
-	err = c.Store("filename_2", 1, []byte(expected))
+	data = []byte(expected)
+	err = c.Store("filename_2", 1, &data)
 	test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: \"%v\"", err))
 
 	err = s1.Get("filename_2_1", &ret)
@@ -105,7 +114,8 @@ func TestClient_Store(t *testing.T) {
 	}
 
 	expected = strings.Repeat("test string 2", 1+(gifts.GiftsBlockSize/len("test string")))
-	err = c.Store("filename_3", 1, []byte(expected))
+	data = []byte(expected)
+	err = c.Store("filename_3", 1, &data)
 	test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: \"%v\"", err))
 
 	for _, s := range []*storage.Storage{s1, s2} {
@@ -118,4 +128,35 @@ func TestClient_Store(t *testing.T) {
 		test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
 		test.AF(t, string(ret) == expected[gifts.GiftsBlockSize:], fmt.Sprintf("Expected %q but found %q", expected, ret))
 	}
+}
+
+func TestClient_Read(t *testing.T) {
+	t.Parallel()
+
+	c := NewClient([]string{"master"})
+
+	addr1 := "localhost:3005"
+	addr2 := "localhost:3006"
+	s1 := storage.NewStorage()
+	s2 := storage.NewStorage()
+	storage.ServeRPC(s1, addr1)
+	storage.ServeRPC(s2, addr2)
+
+	var data []byte
+
+	// File does not exist
+
+	// Master fails
+
+	// Master returns incorrect number of assignments
+
+	// Master returns incorrect number of Storage nodes for each block
+
+	// Storage node fails
+
+	// Empty file
+
+	// File with one block
+
+	// File with multiple blocks
 }

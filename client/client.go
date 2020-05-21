@@ -17,7 +17,7 @@ type Client struct {
 	storages sync.Map
 }
 
-// NewClient creates a new GIFTS's client
+// NewClient creates a new GIFTS client
 func NewClient(masters []string) *Client {
 	c := Client{}
 	c.master = master.NewConn(masters[0]) // WARN: hard-code for single master
@@ -31,22 +31,22 @@ func NewClient(masters []string) *Client {
 //		- A file with the specified file name already exists
 //		- The Master does not give us enough blocks in which to store the data
 //		- There is a network error (this is fatal and cannot be recovered from)
-func (c *Client) Store(fname string, rfactor uint, data []byte) error {
+func (c *Client) Store(fname string, rfactor uint, data *[]byte) error {
 	// Make sure file name is not empty
 	if fname == "" {
 		msg := "File name cannot be empty"
-		log.Printf("Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
+		log.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
 		return fmt.Errorf(msg)
 	}
 
 	// Make sure rfactor is not 0
 	if rfactor <= 0 {
 		msg := "Replication factor must be positive"
-		log.Printf("Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
+		log.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
 		return fmt.Errorf(msg)
 	}
 
-	fsize := uint64(len(data))
+	fsize := uint64(len(*data))
 
 	// Get block assignments from Master.
 	// The result is a list where the ith element of the list is another list
@@ -54,7 +54,7 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	// the file.
 	assignments, err := c.master.Create(fname, fsize, rfactor)
 	if err != nil {
-		log.Printf("Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
+		log.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
 		return err
 	}
 
@@ -68,7 +68,7 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	// write to.
 	if nBlocks != uint64(len(assignments)) {
 		msg := fmt.Sprintf("Need %d blocks but the Master gave us %d", nBlocks, len(assignments))
-		log.Printf("Store(fname=%q, rfactor=%d, fsize=%d) => %q", fname, rfactor, fsize, msg)
+		log.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %q", fname, rfactor, fsize, msg)
 		return fmt.Errorf(msg)
 	}
 
@@ -80,49 +80,84 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 			endIndex = fsize
 		}
 
-		var b gifts.Block = data[startIndex:endIndex]
+		var b gifts.Block = (*data)[startIndex:endIndex]
 
 		// Write each block to the specified Storage nodes
 		// TODO: Parallelize this with go statements
 		for _, addr := range assignments[i].Replicas {
 			rpcs, _ := c.storages.LoadOrStore(addr, storage.NewRPCStorage(addr))
 			if err := rpcs.(*storage.RPCStorage).Set(&structure.BlockKV{ID: assignments[i].BlockID, Data: b}); err != nil {
-				log.Printf("Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
+				log.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
 				return err
 			}
 		}
 	}
 
-	log.Printf("Store(fname=%q, rfactor=%d, fsize=%d) => success", fname, rfactor, fsize)
+	log.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => success", fname, rfactor, fsize)
 	return nil
 }
 
-func (c *Client) Read(fname string) ([]byte, error) {
-	// fblks, err := c.master.Read(fname)
-	// if err != nil {
-	// 	return nil, err
-	// }
+// Read reads a file with the specified file name from the remote Storage.
+// It returns an error if:
+//		- The file does not exist
+// 		- The Master fails or returns inconsistent metadata
+//		- There is a network error
+func (c *Client) Read(fname string, ret *[]byte) error {
+	// Clear return slice
+	*ret = make([]byte, 0)
 
-	// if fblks.Fsize == 0 {
-	// 	return []byte{}, nil
-	// }
+	// Get location of each block of the file from the Master
+	fb, err := c.master.Read(fname)
+	if err != nil {
+		log.Printf("Client.Read(fname=%q) => %v", fname, err)
+		return err
+	}
 
-	// // get a multiple of gifts.GiftsBlockSize
-	// paddingSize := fblks.Fsize % gifts.GiftsBlockSize
-	// bufSize := fblks.Fsize + paddingSize
+	// Verify metadata from Master
+	nBlocks := fb.Fsize / gifts.GiftsBlockSize
+	if fb.Fsize%gifts.GiftsBlockSize != 0 {
+		nBlocks++
+	}
+	if uint64(len(fb.Assignments)) != nBlocks {
+		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
+		log.Printf("Client.Read(fname=%q) => %q", fname, msg)
+		return fmt.Errorf(msg)
+	}
+	for _, replica := range fb.Assignments {
+		if len(replica.Replicas) != 1 {
+			msg := fmt.Sprintf("Master returned invalid replica %v", replica)
+			log.Printf("Client.Read(fname=%q) => %q", fname, msg)
+			return fmt.Errorf(msg)
+		}
+	}
 
-	// data := make([]byte, bufSize)
-	// for i, assignment := range fblks.Assignments {
-	// 	// TODO: works?????????
-	// 	err := c.storageConn(assignment.Replicas[0]).Get(assignment.BlockID, data[i*gifts.GiftsBlockSize:])
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
+	// Handle empty files as a special case
+	if fb.Fsize == 0 {
+		return nil
+	}
 
-	// // truncate the padding
-	// // TODO: off by one????
-	// return data[:bufSize-paddingSize], nil
+	// Loop over every block
+	// TODO: parallelize this with go routines
+	*ret = make([]byte, fb.Fsize)
+	for i, block := range fb.Assignments {
+		id := block.BlockID
+		replica := block.Replicas[0]
 
-	panic("TODO")
+		startIndex := i * gifts.GiftsBlockSize
+		endIndex := uint64((i + 1) * gifts.GiftsBlockSize)
+		if endIndex > fb.Fsize {
+			endIndex = fb.Fsize
+		}
+		temp := gifts.Block((*ret)[startIndex:endIndex])
+
+		// Load block from remote Storage
+		rpcs, _ := c.storages.LoadOrStore(replica, storage.NewRPCStorage(replica))
+		if err := rpcs.(*storage.RPCStorage).Get(id, &temp); err != nil {
+			log.Printf("Client.Read(fname=%q) => %v", fname, err)
+			return err
+		}
+	}
+
+	log.Printf("Client.Read(fname=%q) => %d bytes", fname, fb.Fsize)
+	return nil
 }
