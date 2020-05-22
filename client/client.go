@@ -142,7 +142,7 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	// PRODUCTION: banish all the logs
 
 	// Get location of each block of the file from the Master
-	fb, err := c.master.Read(fname)
+	fb, err := c.master.Lookup(fname)
 	if err != nil {
 		c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
 		return []byte{}, err
