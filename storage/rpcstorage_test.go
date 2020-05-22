@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
@@ -17,7 +16,7 @@ func TestRPCStorage_Set(t *testing.T) {
 
 	// Set new data
 	rpcs := NewRPCStorage("localhost:3000")
-	log.Println("TestRPCStorage_Set: Starting test #1")
+	t.Log("TestRPCStorage_Set: Starting test #1")
 	kv := &structure.BlockKV{ID: "id1", Data: []byte("data 1")}
 	err := rpcs.Set(kv)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
@@ -26,7 +25,7 @@ func TestRPCStorage_Set(t *testing.T) {
 	}
 
 	// Overwrite old data
-	log.Println("TestRPCStorage_Set: Starting test #2")
+	t.Log("TestRPCStorage_Set: Starting test #2")
 	kv.Data = gifts.Block("new data2")
 	err = rpcs.Set(kv)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
@@ -35,7 +34,7 @@ func TestRPCStorage_Set(t *testing.T) {
 	}
 
 	// Parallel sets
-	log.Println("TestRPCStorage_Set: Starting test #3")
+	t.Log("TestRPCStorage_Set: Starting test #3")
 	nSets := 100
 	done := make(chan bool, nSets)
 	for i := 0; i < nSets; i++ {
@@ -72,28 +71,28 @@ func TestRPCStorage_Get(t *testing.T) {
 	ServeRPC(s, "localhost:3001")
 
 	// Attempt to get a missing ID
-	log.Println("TestStorage_Get: Starting test #1")
+	t.Log("TestStorage_Get: Starting test #1")
 	rpcs := NewRPCStorage("localhost:3001")
 	data := new(gifts.Block)
 	err := rpcs.Get("fake_id", data)
 	test.AF(t, err != nil, "Storage.Set: Expected non-nil error")
 
 	// Get empty data
-	log.Println("TestStorage_Get: Starting test #2")
+	t.Log("TestStorage_Get: Starting test #2")
 	s.blocks["id1"] = make([]byte, 0)
 	err = rpcs.Get("id1", data)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
 	test.AF(t, len(*data) == 0, fmt.Sprintf("Expected empty data, found %q", *data))
 
 	// Get some data
-	log.Println("TestStorage_Get: Starting test #3")
+	t.Log("TestStorage_Get: Starting test #3")
 	s.blocks["id2"] = []byte("some data")
 	err = rpcs.Get("id2", data)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
 	test.AF(t, string(*data) == "some data", fmt.Sprintf("Expected \"some data\", found %q", *data))
 
 	// Parallel get
-	log.Println("TestStorage_Set: Starting test #4")
+	t.Log("TestStorage_Set: Starting test #4")
 	nBlocks := 10
 	for i := 0; i < nBlocks; i++ {
 		id := fmt.Sprintf("id_%d", i)
@@ -129,20 +128,20 @@ func TestRPCStorage_Unset(t *testing.T) {
 	ServeRPC(s, "localhost:3002")
 
 	// Missing ID
-	log.Println("TestStorage_Set: Starting test #1")
+	t.Log("TestStorage_Set: Starting test #1")
 	rpcs := NewRPCStorage("localhost:3002")
 	err := rpcs.Unset("id1", nil)
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Unset data
-	log.Println("TestStorage_Set: Starting test #2")
+	t.Log("TestStorage_Set: Starting test #2")
 	s.blocks["id1"] = []byte("data 1")
 	err = rpcs.Unset("id1", nil)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Unset failed: %v", err))
 	test.AF(t, len(s.blocks["id1"]) == 0, fmt.Sprintf("Expected no data, found %q", s.blocks["id1"]))
 
 	// Parallel unset
-	log.Println("TestStorage_Set: Starting test #3")
+	t.Log("TestStorage_Set: Starting test #3")
 	nUnsets := 100
 	for i := 0; i < nUnsets; i++ {
 		id := fmt.Sprintf("id_%d", i)
