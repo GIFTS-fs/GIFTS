@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -19,7 +18,7 @@ const (
 
 // Storage is a concurrency-safe key-value store.
 type Storage struct {
-	logger     *gifts.Logger
+	logger     *gifts.Logger // PRODUCTION: banish this
 	blocks     map[string]gifts.Block
 	blocksLock sync.RWMutex
 }
@@ -45,14 +44,14 @@ func ServeRPC(s *Storage, addr string) (err error) {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Printf("ServeRPC(%q) => %v", addr, err)
+		s.logger.Printf("ServeRPC(%q) => %v", addr, err)
 		return
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle(RPCPathStorage, server)
 
-	log.Printf("ServeRPC(%q) => success", addr)
+	s.logger.Printf("ServeRPC(%q) => success", addr)
 
 	go http.Serve(listener, mux)
 	return
@@ -60,7 +59,7 @@ func ServeRPC(s *Storage, addr string) (err error) {
 
 // Set sets the data associated with the block's ID
 func (s *Storage) Set(kv *structure.BlockKV, ignore *bool) error {
-	log.Printf("Storage.Set(%q, %d bytes)", kv.ID, len(kv.Data))
+	s.logger.Printf("Storage.Set(%q, %d bytes)", kv.ID, len(kv.Data))
 
 	// Store data into block
 	s.blocksLock.Lock()
@@ -84,7 +83,7 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	// Check if ID exists
 	if !found {
 		msg := fmt.Sprintf("Block with ID %s does not exist", id)
-		log.Printf("Storage.Get(%q) => %q", id, msg)
+		s.logger.Printf("Storage.Get(%q) => %q", id, msg)
 		return fmt.Errorf(msg)
 	}
 
@@ -92,7 +91,7 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	*ret = make([]byte, len(block))
 	copy(*ret, block)
 
-	log.Printf("Storage.Get(%q) => %d bytes", id, len(block))
+	s.logger.Printf("Storage.Get(%q) => %d bytes", id, len(block))
 	return nil
 }
 
@@ -106,7 +105,7 @@ func (s *Storage) Unset(id string, ignore *bool) error {
 	// Check if ID exists
 	if !found {
 		msg := fmt.Sprintf("Block with ID %s does not exist", id)
-		log.Printf("Storage.Unset(%q) => %q", id, msg)
+		s.logger.Printf("Storage.Unset(%q) => %q", id, msg)
 		return fmt.Errorf(msg)
 	}
 
@@ -115,6 +114,6 @@ func (s *Storage) Unset(id string, ignore *bool) error {
 	delete(s.blocks, id)
 	s.blocksLock.Unlock()
 
-	log.Printf("Storage.Unset(%q) => success", id)
+	s.logger.Printf("Storage.Unset(%q) => success", id)
 	return nil
 }
