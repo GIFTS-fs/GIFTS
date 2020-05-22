@@ -14,7 +14,7 @@ type Generate struct {
 	rand *rand.Rand
 }
 
-// NewGenerate is the constructor for Gernerate
+// NewGenerate is the constructor for Generate
 func NewGenerate() *Generate {
 	h := fnv.New64a()
 	binary.Write(h, binary.LittleEndian, time.Now().UnixNano())

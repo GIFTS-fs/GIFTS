@@ -17,7 +17,6 @@ type RPCStorage struct {
 // NewRPCStorage creates a client that allows you to access a raw Storage node
 // that is accessible via RPC at the specified address.
 func NewRPCStorage(addr string) *RPCStorage {
-	// return &RPCStorage{addr: addr}
 	return &RPCStorage{addr: addr, logger: gifts.NewLogger("RPCStorage", addr, true)} // PRODUCTION: banish this
 }
 

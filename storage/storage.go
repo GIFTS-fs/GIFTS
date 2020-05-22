@@ -25,7 +25,6 @@ type Storage struct {
 
 // NewStorage creates a new storage node
 func NewStorage() *Storage {
-	// return &Storage{blocks: make(map[string]gifts.Block)}
 	return &Storage{
 		blocks: make(map[string]gifts.Block),
 		logger: gifts.NewLogger("Storage", "storage", true), // PRODUCTION: banish this
@@ -39,6 +38,7 @@ func ServeRPC(s *Storage, addr string) (err error) {
 
 	err = server.Register(s)
 	if err != nil {
+		s.logger.Printf("ServeRPC(%q) => %v", addr, err)
 		return
 	}
 
