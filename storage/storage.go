@@ -14,13 +14,18 @@ import (
 
 // Storage is a concurrency-safe key-value store.
 type Storage struct {
+	logger     *gifts.Logger
 	blocks     map[string]gifts.Block
 	blocksLock sync.RWMutex
 }
 
 // NewStorage creates a new storage node
 func NewStorage() *Storage {
-	return &Storage{blocks: make(map[string]gifts.Block)}
+	// return &Storage{blocks: make(map[string]gifts.Block)}
+	return &Storage{
+		blocks: make(map[string]gifts.Block),
+		logger: gifts.NewLogger("Storage", "storage", true), // PRODUCTION: banish this
+	}
 }
 
 // ServeRPC makes the raw Storage accessible via RPC at the specified IP
@@ -39,7 +44,7 @@ func ServeRPC(s *Storage, addr string) error {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		// log.Printf("ServeRPC(%q) => %v", addr, err)
+		log.Printf("ServeRPC(%q) => %v", addr, err)
 		return err
 	}
 

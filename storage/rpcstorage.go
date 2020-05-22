@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"log"
 	"net/rpc"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
@@ -10,14 +9,16 @@ import (
 
 // RPCStorage is a concurrency-safe key-value store accessible via RPC.
 type RPCStorage struct {
-	addr string
-	conn *rpc.Client
+	logger *gifts.Logger
+	addr   string
+	conn   *rpc.Client
 }
 
 // NewRPCStorage creates a client that allows you to access a raw Storage node
 // that is accessible via RPC at the specified address.
 func NewRPCStorage(addr string) *RPCStorage {
-	return &RPCStorage{addr: addr}
+	// return &RPCStorage{addr: addr}
+	return &RPCStorage{addr: addr, logger: gifts.NewLogger("RPCStorage", addr, true)} // PRODUCTION: banish this
 }
 
 func (s *RPCStorage) connect() (err error) {
@@ -49,9 +50,9 @@ func (s *RPCStorage) Set(kv *structure.BlockKV) error {
 	}
 
 	if err == nil {
-		log.Printf("%q: RPCStorage.Set(%q, %d bytes) => success", s.addr, kv.ID, len(kv.Data))
+		s.logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => success", s.addr, kv.ID, len(kv.Data))
 	} else {
-		log.Printf("%q: RPCStorage.Set(%q, %d bytes) => %v", s.addr, kv.ID, len(kv.Data), err)
+		s.logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => %v", s.addr, kv.ID, len(kv.Data), err)
 	}
 
 	return err
@@ -87,9 +88,9 @@ func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 	}
 
 	if err == nil {
-		log.Printf("%q: RPCStorage.Get(%q) => %d bytes", s.addr, id, len(*ret))
+		s.logger.Printf("%q: RPCStorage.Get(%q) => %d bytes", s.addr, id, len(*ret))
 	} else {
-		log.Printf("%q: RPCStorage.Get(%q) => %v", s.addr, id, err)
+		s.logger.Printf("%q: RPCStorage.Get(%q) => %v", s.addr, id, err)
 	}
 
 	return err
@@ -119,9 +120,9 @@ func (s *RPCStorage) Unset(id string, ignore *bool) error {
 	}
 
 	if err == nil {
-		log.Printf("%q: RPCStorage.Unset(%q) => success", s.addr, id)
+		s.logger.Printf("%q: RPCStorage.Unset(%q) => success", s.addr, id)
 	} else {
-		log.Printf("%q: RPCStorage.Unset(%q) => %v", s.addr, id, err)
+		s.logger.Printf("%q: RPCStorage.Unset(%q) => %v", s.addr, id, err)
 	}
 
 	return err
