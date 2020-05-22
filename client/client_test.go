@@ -141,14 +141,14 @@ func TestClient_Read(t *testing.T) {
 	storage.ServeRPC(s1, addr1)
 	storage.ServeRPC(s2, addr2)
 
-	var data, ret []byte
+	var data []byte
 
 	// File does not exist
 	t.Logf("TestClient_Read: Starting test #1")
 	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
 		return nil, fmt.Errorf("%q does not exist", fname)
 	}
-	err := c.Read("Invalid file", &ret)
+	ret, err := c.Read("Invalid file")
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Master fails
@@ -156,7 +156,7 @@ func TestClient_Read(t *testing.T) {
 	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
 		return nil, fmt.Errorf("Master failed")
 	}
-	err = c.Read("filename", &ret)
+	ret, err = c.Read("filename")
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Master returns incorrect number of assignments
@@ -165,7 +165,7 @@ func TestClient_Read(t *testing.T) {
 		ret := structure.FileBlocks{Fsize: gifts.GiftsBlockSize * 2, Assignments: []structure.BlockAssign{}}
 		return &ret, nil
 	}
-	err = c.Read("filename", &ret)
+	ret, err = c.Read("filename")
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Master returns incorrect number of Storage nodes for each block
@@ -175,7 +175,7 @@ func TestClient_Read(t *testing.T) {
 		ret := structure.FileBlocks{Fsize: 1, Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
 	}
-	err = c.Read("filename", &ret)
+	ret, err = c.Read("filename")
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Storage node fails
@@ -185,7 +185,7 @@ func TestClient_Read(t *testing.T) {
 		ret := structure.FileBlocks{Fsize: 1, Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
 	}
-	err = c.Read("filename", &ret)
+	ret, err = c.Read("filename")
 	test.AF(t, err != nil, "Expected non-nil error")
 
 	// Empty file
@@ -194,7 +194,7 @@ func TestClient_Read(t *testing.T) {
 		ret := structure.FileBlocks{Fsize: 0, Assignments: []structure.BlockAssign{}}
 		return &ret, nil
 	}
-	err = c.Read("emptyfile", &ret)
+	ret, err = c.Read("emptyfile")
 	test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 	test.AF(t, len(ret) == 0, fmt.Sprintf("Expected 0 bytes, found %q", ret))
 
@@ -211,7 +211,7 @@ func TestClient_Read(t *testing.T) {
 	err = s1.Set(&kv, new(bool))
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 
-	err = c.Read("filename", &ret)
+	ret, err = c.Read("filename")
 	test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 	test.AF(t, string(ret) == string(data), fmt.Sprintf("Expected %q, found %q", data, ret))
 
@@ -235,7 +235,7 @@ func TestClient_Read(t *testing.T) {
 	err = s2.Set(&kv, new(bool))
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 
-	err = c.Read("file_2", &ret)
+	ret, err = c.Read("file_2")
 	test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 	test.AF(t, string(ret) == expected, fmt.Sprintf("Expected %q, found %q", expected, ret))
 }

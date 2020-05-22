@@ -83,20 +83,18 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 
 	var wg sync.WaitGroup
 
-	// Split data into blocks
-	for i := 0; i < nBlocks; i++ {
+	// For each block of data
+	for i, assignment := range assignments {
 		startIndex := i * gifts.GiftsBlockSize
 		endIndex := (i + 1) * gifts.GiftsBlockSize
-		// TODO: can use Full slice expression to get rid of this if statement
-		//       a[low : high : max]
 		if endIndex > fsize {
 			endIndex = fsize
 		}
 
 		var b gifts.Block = data[startIndex:endIndex]
 
-		// Write each block to the specified Storage nodes
-		for _, addr := range assignments[i].Replicas {
+		// Write to replicas
+		for _, addr := range assignment.Replicas {
 			rpcs, ok := c.storages.Load(addr)
 			if !ok {
 				rpcs = storage.NewRPCStorage(addr)
@@ -108,25 +106,29 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 
 			wg.Add(1)
 
-			go func() {
+			// spawned threads will stop on first (detected) error
+			go func(id string) {
 				// WARN: no sync on err, and threads stop when err is not nil
+				// data racing expected
 				defer wg.Done()
 				if err != nil {
 					return
 				}
 
-				if err = rpcs.(*storage.RPCStorage).Set(&structure.BlockKV{ID: assignments[i].BlockID, Data: b}); err != nil {
+				if err = rpcs.(*storage.RPCStorage).Set(&structure.BlockKV{ID: id, Data: b}); err != nil {
 					c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
 				}
-			}()
+			}(assignment.BlockID)
 
 		}
 	}
 
 	wg.Wait()
 
-	c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => success", fname, rfactor, fsize)
-	return nil
+	// if err == nil {
+	// 	c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => success", fname, rfactor, fsize)
+	// }
+	return err
 }
 
 // Read reads a file with the specified file name from the remote Storage.
@@ -134,17 +136,14 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 //		- The file does not exist
 // 		- The Master fails or returns inconsistent metadata
 //		- There is a network error
-func (c *Client) Read(fname string, ret *[]byte) error {
+func (c *Client) Read(fname string) ([]byte, error) {
 	// PRODUCTION: banish all the logs
-
-	// Clear return slice
-	*ret = make([]byte, 0)
 
 	// Get location of each block of the file from the Master
 	fb, err := c.master.Read(fname)
 	if err != nil {
 		c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
-		return err
+		return []byte{}, err
 	}
 
 	// Verify metadata from Master
@@ -155,29 +154,24 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 	if len(fb.Assignments) != nBlocks {
 		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
 		c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
-		return fmt.Errorf(msg)
+		return []byte{}, fmt.Errorf(msg)
 	}
 
-	// Handle empty files as a special case
-	if fb.Fsize == 0 {
-		// c.logger.Printf("Client.Read(fname=%q) => 0 bytes", fname)
-		return nil
-	}
+	var wg sync.WaitGroup
 
 	// Loop over every block
-	// TODO: parallelize this with go routines
-	*ret = make([]byte, fb.Fsize)
-	// TODO: get rid of unnecessary copying
-	temp := gifts.Block{}
+	bytesRead := make([]byte, fb.Fsize)
+	var blockRead gifts.Block
 	for i, block := range fb.Assignments {
-
+		// return error if not enough replicas provided
 		if len(block.Replicas) < 1 {
+			wg.Wait()
 			msg := fmt.Sprintf("Master returned too few replicas: %v", block)
 			c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
-			return fmt.Errorf(msg)
+			return []byte{}, fmt.Errorf(msg)
 		}
 
-		id := block.BlockID
+		// WARN: hard-code only one
 		replica := block.Replicas[0]
 
 		// Load block from remote Storage
@@ -191,19 +185,35 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 			}
 		}
 
-		if err := rpcs.(*storage.RPCStorage).Get(id, &temp); err != nil {
-			c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
-			return err
-		}
-
 		startIndex := i * gifts.GiftsBlockSize
 		endIndex := (i + 1) * gifts.GiftsBlockSize
 		if endIndex > fb.Fsize {
 			endIndex = fb.Fsize
 		}
-		copy((*ret)[startIndex:endIndex], temp)
+
+		wg.Add(1)
+
+		go func(id string) {
+			defer wg.Done()
+			if err != nil {
+				return
+			}
+
+			if err = rpcs.(*storage.RPCStorage).Get(id, &blockRead); err != nil {
+				c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
+			}
+
+			copy(bytesRead[startIndex:endIndex], blockRead)
+		}(block.BlockID)
+
+	}
+
+	wg.Wait()
+
+	if err != nil {
+		return []byte{}, err
 	}
 
 	c.logger.Printf("Client.Read(fname=%q) => %d bytes", fname, fb.Fsize)
-	return nil
+	return bytesRead, nil
 }
