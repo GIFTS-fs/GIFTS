@@ -61,7 +61,7 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	// The result is a list where the ith element of the list is another list
 	// that specifies the Storage nodes at which to replicate the ith block of
 	// the file.
-	assignments, err := c.master.Create(fname, uint(fsize), rfactor)
+	assignments, err := c.master.Create(fname, fsize, rfactor)
 	if err != nil {
 		c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
 		return err
@@ -152,7 +152,7 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	if fb.Fsize%gifts.GiftsBlockSize != 0 {
 		nBlocks++
 	}
-	if uint(len(fb.Assignments)) != nBlocks {
+	if len(fb.Assignments) != nBlocks {
 		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
 		c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
 		return []byte{}, fmt.Errorf(msg)
@@ -181,15 +181,15 @@ func (c *Client) Read(fname string) ([]byte, error) {
 			c.storages.Store(replica, rpcs)
 		}
 
-		startIndex := uint(i * gifts.GiftsBlockSize)
-		endIndex := uint((i + 1) * gifts.GiftsBlockSize)
+		startIndex := i * gifts.GiftsBlockSize
+		endIndex := (i + 1) * gifts.GiftsBlockSize
 		if endIndex > fb.Fsize {
 			endIndex = fb.Fsize
 		}
 
 		// Spawned go routines will stop on first (detected) error
 		wg.Add(1)
-		go func(id string, start, end uint) {
+		go func(id string, start, end int) {
 			defer wg.Done()
 			// Another Get already failed so there's no point in doing this Get
 			if terr != nil {

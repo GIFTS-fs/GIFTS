@@ -4,7 +4,7 @@ package structure
 // needed since Go RPC only support one argument
 type FileCreateReq struct {
 	Fname   string
-	Fsize   uint
+	Fsize   int
 	Rfactor uint
 }
 
@@ -18,6 +18,6 @@ type BlockAssign struct {
 
 // FileBlocks is the return type of Master.Read()
 type FileBlocks struct {
-	Fsize       uint          // size of the file, to handle padding
+	Fsize       int           // size of the file, to handle padding
 	Assignments []BlockAssign // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) >= 1
 }

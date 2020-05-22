@@ -12,7 +12,7 @@ const (
 )
 
 // CreateFunc is the function signature for Master.Create()
-type CreateFunc func(fname string, fsize uint, rfactor uint) ([]structure.BlockAssign, error)
+type CreateFunc func(fname string, fsize int, rfactor uint) ([]structure.BlockAssign, error)
 
 // ReadFunc is the function signature for Master.Read()
 type ReadFunc func(fname string) (*structure.FileBlocks, error)

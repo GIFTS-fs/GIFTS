@@ -26,7 +26,7 @@ func NewConn(addr string) *Conn {
 
 // TODO: fix hard-coding for RPC
 func (c *Conn) makeCreate(rcli *gifts.RPCClient) {
-	c.Create = func(fname string, fsize uint, rfactor uint) ([]structure.BlockAssign, error) {
+	c.Create = func(fname string, fsize int, rfactor uint) ([]structure.BlockAssign, error) {
 		var ret []structure.BlockAssign
 		err := rcli.Call(func(conn *rpc.Client) error {
 			return conn.Call(

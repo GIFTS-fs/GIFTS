@@ -39,7 +39,7 @@ func TestClient_Store(t *testing.T) {
 
 	// Valid call but Master returns incorrect number of blocks
 	t.Logf("TestClient_Store: Starting test #3")
-	c.master.Create = func(fname string, fsize uint, rfactor uint) ([]structure.BlockAssign, error) {
+	c.master.Create = func(fname string, fsize int, rfactor uint) ([]structure.BlockAssign, error) {
 		block := structure.BlockAssign{BlockID: "ID", Replicas: []string{"r1"}}
 		return []structure.BlockAssign{block, block}, nil
 	}
@@ -49,7 +49,7 @@ func TestClient_Store(t *testing.T) {
 
 	// Master failure
 	t.Logf("TestClient_Store: Starting test #4")
-	c.master.Create = func(fname string, fsize uint, rfactor uint) ([]structure.BlockAssign, error) {
+	c.master.Create = func(fname string, fsize int, rfactor uint) ([]structure.BlockAssign, error) {
 		return nil, fmt.Errorf("Master error")
 	}
 	data = []byte("Hello World")
@@ -58,7 +58,7 @@ func TestClient_Store(t *testing.T) {
 
 	// Valid call with no data
 	t.Logf("TestClient_Store: Starting test #5")
-	c.master.Create = func(fname string, fsize uint, rfactor uint) ([]structure.BlockAssign, error) {
+	c.master.Create = func(fname string, fsize int, rfactor uint) ([]structure.BlockAssign, error) {
 		return []structure.BlockAssign{}, nil
 	}
 	data = []byte("")
@@ -67,7 +67,7 @@ func TestClient_Store(t *testing.T) {
 
 	// Valid call with less than one block of data and one replica
 	t.Logf("TestClient_Store: Starting test #6")
-	c.master.Create = func(fname string, fsize uint, rfactor uint) ([]structure.BlockAssign, error) {
+	c.master.Create = func(fname string, fsize int, rfactor uint) ([]structure.BlockAssign, error) {
 		block := structure.BlockAssign{BlockID: fname, Replicas: []string{addr1}}
 		return []structure.BlockAssign{block}, nil
 	}
@@ -84,7 +84,7 @@ func TestClient_Store(t *testing.T) {
 
 	// Valid call with more than one block of data and one replica
 	t.Logf("TestClient_Store: Starting test #7")
-	c.master.Create = func(fname string, fsize uint, rfactor uint) ([]structure.BlockAssign, error) {
+	c.master.Create = func(fname string, fsize int, rfactor uint) ([]structure.BlockAssign, error) {
 		block1 := structure.BlockAssign{BlockID: fname + "_1", Replicas: []string{addr1}}
 		block2 := structure.BlockAssign{BlockID: fname + "_2", Replicas: []string{addr1}}
 		return []structure.BlockAssign{block1, block2}, nil
@@ -106,7 +106,7 @@ func TestClient_Store(t *testing.T) {
 
 	// Valid call with more than one block of data and more than one replica
 	t.Logf("TestClient_Store: Starting test #8")
-	c.master.Create = func(fname string, fsize uint, rfactor uint) ([]structure.BlockAssign, error) {
+	c.master.Create = func(fname string, fsize int, rfactor uint) ([]structure.BlockAssign, error) {
 		block1 := structure.BlockAssign{BlockID: fname + "_1", Replicas: []string{addr1, addr2}}
 		block2 := structure.BlockAssign{BlockID: fname + "_2", Replicas: []string{addr1, addr2}}
 		return []structure.BlockAssign{block1, block2}, nil
@@ -203,7 +203,7 @@ func TestClient_Read(t *testing.T) {
 	data = []byte("Hello World")
 	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
 		block := structure.BlockAssign{BlockID: "file_1_1", Replicas: []string{addr1}}
-		ret := structure.FileBlocks{Fsize: uint(len(data)), Assignments: []structure.BlockAssign{block}}
+		ret := structure.FileBlocks{Fsize: len(data), Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
 	}
 
@@ -223,7 +223,7 @@ func TestClient_Read(t *testing.T) {
 		block2 := structure.BlockAssign{BlockID: "file_2_2", Replicas: []string{addr2}}
 		fsize := len(expected)
 
-		ret := structure.FileBlocks{Fsize: uint(fsize), Assignments: []structure.BlockAssign{block1, block2}}
+		ret := structure.FileBlocks{Fsize: fsize, Assignments: []structure.BlockAssign{block1, block2}}
 		return &ret, nil
 	}
 
