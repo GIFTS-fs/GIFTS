@@ -29,8 +29,8 @@ func NewClient(masters []string) *Client {
 // data. Note that the replication factor is only a hint: we may allocate
 // fewer replicas depending on the number of Storage nodes available.
 // Store() must not modify data[] or keep a copy of it.
-// For current version, max file size is 9223372036854775807, the max length of
-// a Golang slice.
+// For current version, we just use whatever the Golang slice has:
+// len() with int type
 //
 // It returns an error if:
 //		- A file with the specified file name already exists
