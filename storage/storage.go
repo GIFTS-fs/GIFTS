@@ -12,6 +12,11 @@ import (
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
+const (
+	// RPCPathStorage the path that Storage listens to
+	RPCPathStorage = "/_gifts_storage_"
+)
+
 // Storage is a concurrency-safe key-value store.
 type Storage struct {
 	logger     *gifts.Logger
@@ -30,27 +35,27 @@ func NewStorage() *Storage {
 
 // ServeRPC makes the raw Storage accessible via RPC at the specified IP
 // address and port.
-func ServeRPC(s *Storage, addr string) error {
+func ServeRPC(s *Storage, addr string) (err error) {
 	server := rpc.NewServer()
-	server.Register(s)
 
-	oldMux := http.DefaultServeMux
-	mux := http.NewServeMux()
-	http.DefaultServeMux = mux
-
-	server.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
-
-	http.DefaultServeMux = oldMux
+	err = server.Register(s)
+	if err != nil {
+		return
+	}
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Printf("ServeRPC(%q) => %v", addr, err)
-		return err
+		return
 	}
 
+	mux := http.NewServeMux()
+	mux.Handle(RPCPathStorage, server)
+
 	log.Printf("ServeRPC(%q) => success", addr)
+
 	go http.Serve(listener, mux)
-	return nil
+	return
 }
 
 // Set sets the data associated with the block's ID

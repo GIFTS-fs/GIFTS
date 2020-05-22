@@ -22,7 +22,7 @@ func NewRPCStorage(addr string) *RPCStorage {
 }
 
 func (s *RPCStorage) connect() (err error) {
-	s.conn, err = rpc.DialHTTP("tcp", s.addr)
+	s.conn, err = rpc.DialHTTPPath("tcp", s.addr, RPCPathStorage)
 	return
 }
 
