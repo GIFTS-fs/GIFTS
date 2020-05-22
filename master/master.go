@@ -24,10 +24,10 @@ func NewMaster() *Master {
 }
 
 // ServRPC spawns a thread listen to RPC traffic
-func ServRPC(addr string) (err error) {
+func ServRPC(m *Master, addr string) (err error) {
 	serv := rpc.NewServer()
 
-	err = serv.RegisterName("Master", NewMaster())
+	err = serv.RegisterName("Master", m)
 	if err != nil {
 		return
 	}
@@ -39,7 +39,7 @@ func ServRPC(addr string) (err error) {
 
 	mux := http.NewServeMux()
 	mux.Handle(RPCPathMaster, serv)
-	err = http.Serve(l, mux)
+	go http.Serve(l, mux)
 	return
 }
 
