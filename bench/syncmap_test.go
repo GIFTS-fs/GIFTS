@@ -7,51 +7,32 @@ package bench
 import (
 	"sync"
 	"testing"
+
+	"github.com/GIFTS-fs/GIFTS/storage"
 )
 
 type stringStruct struct {
 	s string
 }
 
-func BenchmarkLoadThenStore(b *testing.B) {
+func BenchmarkLoadLoadOrStore(b *testing.B) {
+	var m sync.Map
+	m.Store("addr", storage.NewRPCStorage("a"))
+
+	var a interface{}
 	for N := 0; N < b.N; N++ {
-		var m sync.Map
-		for i := 0; i < 64*1024; i++ {
-			for k := 0; k < 256; k++ {
-
-				// Assume cache hit
-				v, ok := m.Load(k)
-				if !ok {
-					// allocate and initialize value
-					v = stringStruct{"a"}
-					a, loaded := m.LoadOrStore(k, v)
-					if loaded {
-						v = a
-					}
-				}
-				_ = v
-
-			}
-		}
+		a, _ = m.Load("addr")
 	}
+	_ = a
 }
 
 func BenchmarkLoadOrStore(b *testing.B) {
+	var m sync.Map
+	m.Store("addr", storage.NewRPCStorage("a"))
+
+	var a interface{}
 	for N := 0; N < b.N; N++ {
-		var m sync.Map
-		for i := 0; i < 64*1024; i++ {
-			for k := 0; k < 256; k++ {
-
-				// Assume cache miss
-				// allocate and initialize value
-				var v interface{} = stringStruct{"a"}
-				a, loaded := m.LoadOrStore(k, v)
-				if loaded {
-					v = a
-				}
-				_ = v
-
-			}
-		}
+		a, _ = m.LoadOrStore("addr", storage.NewRPCStorage("a"))
 	}
+	_ = a
 }

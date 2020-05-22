@@ -96,12 +96,13 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 		// Write to replicas
 		for _, addr := range assignment.Replicas {
 
-			// Get connection to Storage node
-			// If one doesn't already exist, create one
+			// Get connection to Storage node.  If one doesn't already exist,
+			// create one.  Note that a failed Load + LoadOrStore is ~14x
+			// faster than a single LoadOrStore for the common scenario (write
+			// once, read many), so this logic is on purpose.
 			rpcs, ok := c.storages.Load(addr)
 			if !ok {
-				rpcs = storage.NewRPCStorage(addr)
-				c.storages.Store(addr, rpcs)
+				rpcs, _ = c.storages.LoadOrStore(addr, storage.NewRPCStorage(addr))
 			}
 
 			// Spawned go routines will stop on first (detected) error
@@ -173,12 +174,13 @@ func (c *Client) Read(fname string) ([]byte, error) {
 		// WARN: hard-code only one
 		replica := block.Replicas[0]
 
-		// Get connection to Storage node
-		// If one doesn't already exist, create one
+		// Get connection to Storage node.  If one doesn't already exist,
+		// create one.  Note that a failed Load + LoadOrStore is ~14x
+		// faster than a single LoadOrStore for the common scenario (write
+		// once, read many), so this logic is on purpose.
 		rpcs, ok := c.storages.Load(replica)
 		if !ok {
-			rpcs = storage.NewRPCStorage(replica)
-			c.storages.Store(replica, rpcs)
+			rpcs, _ = c.storages.LoadOrStore(replica, storage.NewRPCStorage(replica))
 		}
 
 		startIndex := i * gifts.GiftsBlockSize
