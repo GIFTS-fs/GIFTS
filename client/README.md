@@ -1,4 +1,5 @@
 # Client
+
 ```go
 type Client struct {
 	master   *master.Conn

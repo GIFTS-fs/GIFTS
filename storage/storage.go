@@ -39,7 +39,7 @@ func ServeRPC(s *Storage, addr string) error {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Printf("ServeRPC(%q) => %v", addr, err)
+		// log.Printf("ServeRPC(%q) => %v", addr, err)
 		return err
 	}
 

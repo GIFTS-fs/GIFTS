@@ -2,7 +2,6 @@ package client
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
@@ -13,6 +12,7 @@ import (
 
 // Client is the client of GIFTS
 type Client struct {
+	logger   *gifts.Logger
 	master   *master.Conn
 	storages sync.Map
 }
@@ -20,33 +20,36 @@ type Client struct {
 // NewClient creates a new GIFTS client
 func NewClient(masters []string) *Client {
 	c := Client{}
+	c.logger = gifts.NewLogger("Client", "end-user", true)
 	c.master = master.NewConn(masters[0]) // WARN: hard-code for single master
 	return &c
 }
 
 // Store stores a file with the specified file name, replication factor, and
-// data.  Note that the replication factor is only a hint: we may allocate
+// data. Note that the replication factor is only a hint: we may allocate
 // fewer replicas depending on the number of Storage nodes available.
+// Store() must not modify data[] or keep a copy of it.
+// For current versoin, max file size is 9223372036854775807, the max len of Golang slice.
 // It returns an error if:
 //		- A file with the specified file name already exists
 //		- The Master does not give us enough blocks in which to store the data
 //		- There is a network error (this is fatal and cannot be recovered from)
-func (c *Client) Store(fname string, rfactor uint, data *[]byte) error {
+func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	// Make sure file name is not empty
 	if fname == "" {
 		msg := "File name cannot be empty"
-		log.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
+		c.logger.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
 		return fmt.Errorf(msg)
 	}
 
 	// Make sure rfactor is not 0
 	if rfactor <= 0 {
 		msg := "Replication factor must be positive"
-		log.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
+		c.logger.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
 		return fmt.Errorf(msg)
 	}
 
-	fsize := uint64(len(*data))
+	fsize := len(data)
 
 	// Get block assignments from Master.
 	// The result is a list where the ith element of the list is another list
@@ -54,7 +57,7 @@ func (c *Client) Store(fname string, rfactor uint, data *[]byte) error {
 	// the file.
 	assignments, err := c.master.Create(fname, fsize, rfactor)
 	if err != nil {
-		log.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
+		c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
 		return err
 	}
 
@@ -66,34 +69,39 @@ func (c *Client) Store(fname string, rfactor uint, data *[]byte) error {
 
 	// Verify that the master gave us the correct number of Storage nodes to
 	// write to.
-	if nBlocks != uint64(len(assignments)) {
+	if nBlocks != len(assignments) {
 		msg := fmt.Sprintf("Need %d blocks but the Master gave us %d", nBlocks, len(assignments))
-		log.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %q", fname, rfactor, fsize, msg)
+		c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %q", fname, rfactor, fsize, msg)
 		return fmt.Errorf(msg)
 	}
 
+	var wg sync.WaitGroup
+
 	// Split data into blocks
-	for i := uint64(0); i < nBlocks; i++ {
+	for i := 0; i < nBlocks; i++ {
 		startIndex := i * gifts.GiftsBlockSize
 		endIndex := (i + 1) * gifts.GiftsBlockSize
 		if endIndex > fsize {
 			endIndex = fsize
 		}
 
-		var b gifts.Block = (*data)[startIndex:endIndex]
+		var b gifts.Block = data[startIndex:endIndex]
 
 		// Write each block to the specified Storage nodes
 		// TODO: Parallelize this with go statements
 		for _, addr := range assignments[i].Replicas {
+			// TODO: no extra struct
 			rpcs, _ := c.storages.LoadOrStore(addr, storage.NewRPCStorage(addr))
 			if err := rpcs.(*storage.RPCStorage).Set(&structure.BlockKV{ID: assignments[i].BlockID, Data: b}); err != nil {
-				log.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
+				c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
 				return err
 			}
 		}
 	}
 
-	log.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => success", fname, rfactor, fsize)
+	wg.Wait()
+
+	c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => success", fname, rfactor, fsize)
 	return nil
 }
 
@@ -109,7 +117,7 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 	// Get location of each block of the file from the Master
 	fb, err := c.master.Read(fname)
 	if err != nil {
-		log.Printf("Client.Read(fname=%q) => %v", fname, err)
+		c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
 		return err
 	}
 
@@ -120,35 +128,36 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 	}
 	if uint64(len(fb.Assignments)) != nBlocks {
 		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
-		log.Printf("Client.Read(fname=%q) => %q", fname, msg)
+		c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
 		return fmt.Errorf(msg)
-	}
-	for _, replica := range fb.Assignments {
-		if len(replica.Replicas) != 1 {
-			msg := fmt.Sprintf("Master returned too many replicas: %v", replica)
-			log.Printf("Client.Read(fname=%q) => %q", fname, msg)
-			return fmt.Errorf(msg)
-		}
 	}
 
 	// Handle empty files as a special case
 	if fb.Fsize == 0 {
-		log.Printf("Client.Read(fname=%q) => 0 bytes", fname)
+		c.logger.Printf("Client.Read(fname=%q) => 0 bytes", fname)
 		return nil
 	}
 
 	// Loop over every block
 	// TODO: parallelize this with go routines
 	*ret = make([]byte, fb.Fsize)
+	// TODO: get rid of unnecessary copying
 	temp := gifts.Block{}
 	for i, block := range fb.Assignments {
+
+		if len(block.Replicas) < 1 {
+			msg := fmt.Sprintf("Master returned too few replicas: %v", block)
+			c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
+			return fmt.Errorf(msg)
+		}
+
 		id := block.BlockID
 		replica := block.Replicas[0]
 
 		// Load block from remote Storage
 		rpcs, _ := c.storages.LoadOrStore(replica, storage.NewRPCStorage(replica))
 		if err := rpcs.(*storage.RPCStorage).Get(id, &temp); err != nil {
-			log.Printf("Client.Read(fname=%q) => %v", fname, err)
+			c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
 			return err
 		}
 
@@ -160,6 +169,6 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 		copy((*ret)[startIndex:endIndex], temp)
 	}
 
-	log.Printf("Client.Read(fname=%q) => %d bytes", fname, fb.Fsize)
+	c.logger.Printf("Client.Read(fname=%q) => %d bytes", fname, fb.Fsize)
 	return nil
 }
