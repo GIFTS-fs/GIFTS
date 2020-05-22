@@ -12,7 +12,7 @@ import (
 
 // Client is the client of GIFTS
 type Client struct {
-	logger   *gifts.Logger
+	logger   *gifts.Logger // PRODUCTION: banish this
 	master   *master.Conn
 	storages sync.Map
 }
@@ -20,8 +20,8 @@ type Client struct {
 // NewClient creates a new GIFTS client
 func NewClient(masters []string) *Client {
 	c := Client{}
-	c.logger = gifts.NewLogger("Client", "end-user", true)
-	c.master = master.NewConn(masters[0]) // WARN: hard-code for single master
+	c.logger = gifts.NewLogger("Client", "end-user", true) // PRODUCTION: banish this
+	c.master = master.NewConn(masters[0])                  // WARN: hard-code for single master
 	return &c
 }
 
@@ -30,13 +30,19 @@ func NewClient(masters []string) *Client {
 // fewer replicas depending on the number of Storage nodes available.
 // Store() must not modify data[] or keep a copy of it.
 // For current versoin, max file size is 9223372036854775807, the max len of Golang slice.
+//
 // It returns an error if:
 //		- A file with the specified file name already exists
+//
 //		- The Master does not give us enough blocks in which to store the data
+//
 //		- There is a network error (this is fatal and cannot be recovered from)
 func (c *Client) Store(fname string, rfactor uint, data []byte) error {
+	// PRODUCTION: banish all logs
+
 	// Make sure file name is not empty
 	if fname == "" {
+		// return fmt.Errorf("File name cannot be empty")
 		msg := "File name cannot be empty"
 		c.logger.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
 		return fmt.Errorf(msg)
@@ -81,6 +87,8 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	for i := 0; i < nBlocks; i++ {
 		startIndex := i * gifts.GiftsBlockSize
 		endIndex := (i + 1) * gifts.GiftsBlockSize
+		// TODO: can use Full slice expression to get rid of this if statement
+		//       a[low : high : max]
 		if endIndex > fsize {
 			endIndex = fsize
 		}
@@ -88,14 +96,30 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 		var b gifts.Block = data[startIndex:endIndex]
 
 		// Write each block to the specified Storage nodes
-		// TODO: Parallelize this with go statements
 		for _, addr := range assignments[i].Replicas {
-			// TODO: no extra struct
-			rpcs, _ := c.storages.LoadOrStore(addr, storage.NewRPCStorage(addr))
-			if err := rpcs.(*storage.RPCStorage).Set(&structure.BlockKV{ID: assignments[i].BlockID, Data: b}); err != nil {
-				c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
-				return err
+			rpcs, ok := c.storages.Load(addr)
+			if !ok {
+				rpcs = storage.NewRPCStorage(addr)
+				a, loaded := c.storages.LoadOrStore(addr, rpcs)
+				if loaded {
+					rpcs = a
+				}
 			}
+
+			wg.Add(1)
+
+			go func() {
+				// WARN: no sync on err, and threads stop when err is not nil
+				defer wg.Done()
+				if err != nil {
+					return
+				}
+
+				if err = rpcs.(*storage.RPCStorage).Set(&structure.BlockKV{ID: assignments[i].BlockID, Data: b}); err != nil {
+					c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
+				}
+			}()
+
 		}
 	}
 
@@ -111,6 +135,8 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 // 		- The Master fails or returns inconsistent metadata
 //		- There is a network error
 func (c *Client) Read(fname string, ret *[]byte) error {
+	// PRODUCTION: banish all the logs
+
 	// Clear return slice
 	*ret = make([]byte, 0)
 
@@ -126,7 +152,7 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 	if fb.Fsize%gifts.GiftsBlockSize != 0 {
 		nBlocks++
 	}
-	if uint64(len(fb.Assignments)) != nBlocks {
+	if len(fb.Assignments) != nBlocks {
 		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
 		c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
 		return fmt.Errorf(msg)
@@ -134,7 +160,7 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 
 	// Handle empty files as a special case
 	if fb.Fsize == 0 {
-		c.logger.Printf("Client.Read(fname=%q) => 0 bytes", fname)
+		// c.logger.Printf("Client.Read(fname=%q) => 0 bytes", fname)
 		return nil
 	}
 
@@ -155,14 +181,23 @@ func (c *Client) Read(fname string, ret *[]byte) error {
 		replica := block.Replicas[0]
 
 		// Load block from remote Storage
-		rpcs, _ := c.storages.LoadOrStore(replica, storage.NewRPCStorage(replica))
+
+		rpcs, ok := c.storages.Load(replica)
+		if !ok {
+			rpcs = storage.NewRPCStorage(replica)
+			a, loaded := c.storages.LoadOrStore(replica, rpcs)
+			if loaded {
+				rpcs = a
+			}
+		}
+
 		if err := rpcs.(*storage.RPCStorage).Get(id, &temp); err != nil {
 			c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
 			return err
 		}
 
 		startIndex := i * gifts.GiftsBlockSize
-		endIndex := uint64((i + 1) * gifts.GiftsBlockSize)
+		endIndex := (i + 1) * gifts.GiftsBlockSize
 		if endIndex > fb.Fsize {
 			endIndex = fb.Fsize
 		}
