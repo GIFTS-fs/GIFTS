@@ -145,7 +145,7 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	}
 
 	// Verify metadata from Master
-	nBlocks := gifts.NBlocks(fb.fsize)
+	nBlocks := gifts.NBlocks(fb.Fsize)
 	if len(fb.Assignments) != nBlocks {
 		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
 		c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
