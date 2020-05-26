@@ -27,9 +27,16 @@ type Master struct {
 }
 
 // NewMaster is the constructor for master
-func NewMaster() *Master {
-	m := Master{}
-	m.logger = gifts.NewLogger("Master", "master", true) // PRODUCTION: banish this
+func NewMaster(storageAddr []string) *Master {
+	m := Master{
+		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
+		createClockHand: 0,
+	}
+
+	for _, addr := range storageAddr {
+		m.storages = append(m.storages, storage.NewRPCStorage(addr))
+	}
+
 	return &m
 }
 
@@ -63,22 +70,26 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 		return fmt.Errorf("Rfactor %v too large (> %v)", req.Rfactor, MaxRfactor)
 	}
 
+	nBlocks := gifts.NBlocks(req.Fsize)
 	fm := &fMeta{
 		fSize:       req.Fsize,
+		nBlocks:     nBlocks,
 		rFactor:     req.Rfactor,
-		assignments: m.makeAssignment(req),
-		nRead:       0}
+		assignments: m.makeAssignment(req, nBlocks),
+		nRead:       0,
+	}
 
 	if _, loaded := m.fCreate(req.Fname, fm); loaded {
 		return fmt.Errorf("File %q already created", req.Fname)
 	}
 
-	assignments = &fm.assignments
+	// m.logger.Printf("Created(%q): %v\n", req.Fname, fm.assignments)
+	*assignments = fm.assignments
 	return nil
 }
 
 // Lookup a file: find mapping for a file
-func (m *Master) Lookup(fname string, ret *structure.FileBlocks) error {
+func (m *Master) Lookup(fname string, ret **structure.FileBlocks) error {
 	fm, found := m.fLookup(fname)
 
 	if !found {
@@ -93,7 +104,8 @@ func (m *Master) Lookup(fname string, ret *structure.FileBlocks) error {
 		Assignments: m.pickReadReplica(fm),
 	}
 
-	ret = fb
+	// m.logger.Printf("Lookup(%q): %v\n", fname, fb)
+	*ret = fb
 
 	return nil
 }

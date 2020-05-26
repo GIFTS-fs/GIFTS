@@ -4,6 +4,7 @@ import "github.com/GIFTS-fs/GIFTS/structure"
 
 type fMeta struct {
 	fSize       int                     // size of the file, to handle padding
+	nBlocks     int                     // save the compution
 	rFactor     uint                    // how important the user thinks this file is
 	assignments []structure.BlockAssign // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) >= 1
 

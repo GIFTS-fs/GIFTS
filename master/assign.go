@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"strconv"
 
-	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
@@ -23,7 +22,7 @@ func (m *Master) nextStorage() (s *storage.RPCStorage) {
 }
 
 // makeAssignment for the request, assume all argumetns are valid to the best knowledge of the caller
-func (m *Master) makeAssignment(req *structure.FileCreateReq) (assignments []structure.BlockAssign) {
+func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assignments []structure.BlockAssign) {
 	// WARN: SHOULD NOT HAVE TYPE CASTING,
 	// its safety is based on the MaxRfactor is not larger than the overflow number
 	nReplica := int(req.Rfactor)
@@ -31,7 +30,6 @@ func (m *Master) makeAssignment(req *structure.FileCreateReq) (assignments []str
 		nReplica = len(m.storages)
 	}
 
-	nBlocks := gifts.NBlocks(req.Fsize)
 	assignments = make([]structure.BlockAssign, nBlocks)
 
 	// Policy 1: Random
@@ -42,6 +40,7 @@ func (m *Master) makeAssignment(req *structure.FileCreateReq) (assignments []str
 
 	// Policy 3: CLOCK
 	for i := range assignments {
+		// WARN: very innocent way to make BlockID
 		assignments[i].BlockID = req.Fname + strconv.FormatInt(int64(i), 10)
 		for j := 0; j < nReplica; j++ {
 			// uniqueness of each replica is ensured by
@@ -55,17 +54,26 @@ func (m *Master) makeAssignment(req *structure.FileCreateReq) (assignments []str
 }
 
 // pickReadReplica for the file, return value has at least one conn,
-// TODO: need to check the error of 0 size replica???
 func (m *Master) pickReadReplica(fm *fMeta) (assignment []structure.BlockAssign) {
-	// Policy 1: (badly) random pick one
-	pick := rand.New(rand.NewSource(int64(fm.fSize))).Intn(len(fm.assignments))
-	assignment[0] = fm.assignments[pick]
+	assignment = make([]structure.BlockAssign, fm.nBlocks)
 
-	// Policy 2: LRU
-	// TODO
+	for i, completeAssignment := range fm.assignments {
+		assignment[i].BlockID = completeAssignment.BlockID
 
-	// Policy 3: CLOCK page replacement algorithm
-	// TODO
+		nReplica := len(completeAssignment.Replicas)
+		if nReplica <= 0 {
+			continue
+		}
 
+		// Policy 1: (badly) random pick one
+		pick := rand.New(rand.NewSource(int64(fm.fSize))).Intn(nReplica)
+		assignment[i].Replicas = []string{completeAssignment.Replicas[pick]}
+
+		// Policy 2: LRU
+		// TODO
+
+		// Policy 3: CLOCK page replacement algorithm
+		// TODO
+	}
 	return
 }
