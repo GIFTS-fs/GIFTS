@@ -3,8 +3,10 @@ package storage
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/generate"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
 )
@@ -165,5 +167,92 @@ func TestRPCStorage_Unset(t *testing.T) {
 	for i := 0; i < nUnsets; i++ {
 		id := fmt.Sprintf("id_%d", i)
 		test.AF(t, len(s.blocks[id]) == 0, fmt.Sprintf("Expected no data, found %q", s.blocks[id]))
+	}
+}
+
+func TestBenchmarkRPCStorage_Set(t *testing.T) {
+	g := generate.NewGenerate()
+	nRuns := int64(10)
+	nTestsPerRun := int64(50000)
+
+	s := NewStorage()
+	ServeRPC(s, "localhost:4000")
+	s.logger.Enabled = false
+
+	rpcs := NewRPCStorage("localhost:4000")
+	rpcs.logger.Enabled = false
+
+	for blockSize := int64(1); blockSize <= 65536; blockSize *= 2 {
+		runElapsed := int64(0)
+		for i := int64(0); i < nRuns; i++ {
+
+			testElapsed := int64(0)
+			for n := int64(0); n < nTestsPerRun; n++ {
+				id := fmt.Sprintf("id_%d", n)
+				kv := structure.BlockKV{ID: id, Data: make([]byte, blockSize)}
+				g.Read(kv.Data)
+
+				startTime := time.Now()
+				rpcs.Set(&kv)
+				testElapsed += time.Since(startTime).Nanoseconds()
+			}
+			runElapsed += (testElapsed / nTestsPerRun)
+		}
+		t.Logf("Block size %d: %d", blockSize, runElapsed/nRuns)
+	}
+}
+
+func TestBenchmarkRPCStorage_Get(t *testing.T) {
+	g := generate.NewGenerate()
+	nRuns := int64(10)
+	nTestsPerRun := int64(1000)
+
+	s := NewStorage()
+	s.logger.Enabled = false
+
+	// For block size
+	for blockSize := int64(1024); blockSize <= 1024; blockSize *= 2 {
+
+		// For number of readers
+		for nReaders := 50; nReaders <= 100; nReaders++ {
+			for n := int64(0); n < nTestsPerRun; n++ {
+				id := fmt.Sprintf("id_%d", n)
+				kv := structure.BlockKV{ID: id, Data: make([]byte, blockSize)}
+				g.Read(kv.Data)
+				s.Set(&kv, nil)
+			}
+
+			// For nRuns
+			done := make(chan float32, nReaders)
+			runThroughput := float32(0)
+			for run := int64(0); run < nRuns; run++ {
+
+				for reader := 0; reader < nReaders; reader++ {
+					go func() {
+						// For nTestsPerRun
+						testElapsed := int64(0)
+						data := new(gifts.Block)
+						rpcs := NewRPCStorage("localhost:4000")
+						rpcs.logger.Enabled = false
+						for testRun := int64(0); testRun < nTestsPerRun; testRun++ {
+							id := fmt.Sprintf("id_%d", testRun)
+
+							startTime := time.Now()
+							rpcs.Get(id, data)
+							testElapsed += time.Since(startTime).Nanoseconds()
+						}
+
+						done <- 1000 * float32(blockSize) / float32(testElapsed/nTestsPerRun)
+					}()
+				}
+
+				for reader := 0; reader < nReaders; reader++ {
+					runThroughput += <-done
+				}
+
+			}
+
+			t.Logf("Block size (%d), readers(%d): %.2f", blockSize, nReaders, runThroughput/float32(nRuns))
+		}
 	}
 }

@@ -3,8 +3,10 @@ package storage
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/generate"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
 )
@@ -159,5 +161,84 @@ func TestStorage_Unset(t *testing.T) {
 	for i := 0; i < nUnsets; i++ {
 		id := fmt.Sprintf("id_%d", i)
 		test.AF(t, len(s.blocks[id]) == 0, fmt.Sprintf("Expected no data, found %q", s.blocks[id]))
+	}
+}
+
+func TestBenchmarkStorage_Set(t *testing.T) {
+	g := generate.NewGenerate()
+	nRuns := int64(100)
+	nTestsPerRun := int64(100000)
+
+	for blockSize := int64(16384); blockSize <= 32768; blockSize *= 2 {
+		runElapsed := int64(0)
+		for i := int64(0); i < nRuns; i++ {
+			s := NewStorage()
+			s.logger.Enabled = false
+
+			testElapsed := int64(0)
+			for n := int64(0); n < nTestsPerRun; n++ {
+				id := fmt.Sprintf("id_%d", n)
+				kv := structure.BlockKV{ID: id, Data: make([]byte, blockSize)}
+				g.Read(kv.Data)
+
+				startTime := time.Now()
+				s.Set(&kv, nil)
+				testElapsed += time.Since(startTime).Nanoseconds()
+			}
+			runElapsed += (testElapsed / nTestsPerRun)
+		}
+		t.Logf("Block size %d: %d", blockSize, runElapsed/nRuns)
+	}
+}
+
+func TestBenchmarkStorage_Get(t *testing.T) {
+	g := generate.NewGenerate()
+	nRuns := int64(10)
+	nTestsPerRun := int64(1000)
+
+	// For block size
+	for blockSize := int64(4096); blockSize <= 4096; blockSize *= 2 {
+
+		// For number of readers
+		for nReaders := 1; nReaders <= 100; nReaders++ {
+			s := NewStorage()
+			s.logger.Enabled = false
+			for n := int64(0); n < nTestsPerRun; n++ {
+				id := fmt.Sprintf("id_%d", n)
+				kv := structure.BlockKV{ID: id, Data: make([]byte, blockSize)}
+				g.Read(kv.Data)
+				s.Set(&kv, nil)
+			}
+
+			// For nRuns
+			done := make(chan float32, nReaders)
+			runThroughput := float32(0)
+			for run := int64(0); run < nRuns; run++ {
+
+				for reader := 0; reader < nReaders; reader++ {
+					go func() {
+						// For nTestsPerRun
+						testElapsed := int64(0)
+						data := new(gifts.Block)
+						for testRun := int64(0); testRun < nTestsPerRun; testRun++ {
+							id := fmt.Sprintf("id_%d", testRun)
+
+							startTime := time.Now()
+							s.Get(id, data)
+							testElapsed += time.Since(startTime).Nanoseconds()
+						}
+
+						done <- 1000 * float32(blockSize) / float32(testElapsed / nTestsPerRun)
+					}()
+				}
+
+				for reader := 0; reader < nReaders; reader++ {
+					runThroughput += <-done
+				}
+
+			}
+
+			t.Logf("Block size (%d), readers(%d): %.2f", blockSize, nReaders, runThroughput/float32(nRuns))
+		}
 	}
 }
