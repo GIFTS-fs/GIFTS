@@ -67,11 +67,7 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 		return err
 	}
 
-	// Determine number of blocks needed to hold data
-	nBlocks := fsize / gifts.GiftsBlockSize
-	if fsize%gifts.GiftsBlockSize != 0 {
-		nBlocks++
-	}
+	nBlocks := gifts.NBlocks(fsize)
 
 	// Verify that the master gave us the correct number of Storage nodes to
 	// write to.
@@ -149,10 +145,7 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	}
 
 	// Verify metadata from Master
-	nBlocks := fb.Fsize / gifts.GiftsBlockSize
-	if fb.Fsize%gifts.GiftsBlockSize != 0 {
-		nBlocks++
-	}
+	nBlocks := gifts.NBlocks(fb.fsize)
 	if len(fb.Assignments) != nBlocks {
 		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
 		c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
