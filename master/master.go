@@ -1,19 +1,29 @@
 package master
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"net/rpc"
 	"sync"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
+// MaxRfactor limits the value of rfactor
+const MaxRfactor = 256
+
 // Master is the master of GIFTS
 type Master struct {
-	fMap   sync.Map
 	logger *gifts.Logger
+
+	fMap sync.Map
+
+	storages        []*storage.RPCStorage
+	storageLoad     sync.Map
+	createClockHand int
 }
 
 // NewMaster is the constructor for master
@@ -45,22 +55,44 @@ func ServRPC(m *Master, addr string) (err error) {
 
 // Create a file: assign replicas for the clients to write
 func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.BlockAssign) error {
-	// structure.FileCreateReq{Fname: fname, Fsize: fsize, Rfactor: rfactor},
+	if m.fExist(req.Fname) {
+		return fmt.Errorf("File %q already exists", req.Fname)
+	}
 
+	if req.Rfactor > MaxRfactor {
+		return fmt.Errorf("Rfactor %v too large (> %v)", req.Rfactor, MaxRfactor)
+	}
+
+	fm := &fMeta{
+		fSize:       req.Fsize,
+		rFactor:     req.Rfactor,
+		assignments: m.makeAssignment(req),
+		nRead:       0}
+
+	if _, loaded := m.fCreate(req.Fname, fm); loaded {
+		return fmt.Errorf("File %q already created", req.Fname)
+	}
+
+	assignments = &fm.assignments
 	return nil
 }
 
 // Lookup a file: find mapping for a file
 func (m *Master) Lookup(fname string, ret *structure.FileBlocks) error {
-	fb, found := m.fLookup(fname)
+	fm, found := m.fLookup(fname)
 
 	if !found {
-		ret = nil
-		return nil // NOT MY ERROR! IT'S CLIENT'S
+		return fmt.Errorf("File %q not found", fname)
 	}
 
-	// TODO: find a way to return the replicas
-	// Ideally like CLOCK page replacement algorithm
+	// TODO: BALANCE
+	//fm.nRead++
+
+	fb := &structure.FileBlocks{
+		Fsize:       fm.fSize,
+		Assignments: m.pickReadReplica(fm),
+	}
+
 	ret = fb
 
 	return nil
