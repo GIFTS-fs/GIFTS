@@ -17,11 +17,13 @@ func TestStorage_Set(t *testing.T) {
 	// Set new data
 	t.Logf("TestStorage_Set: Starting test #1")
 	s := NewStorage()
-	kv := &structure.BlockKV{ID: "id1", Data: []byte("data 1")}
+	kv := &structure.BlockKV{ID: "id1", Data: gifts.Block("data 1")}
 	err := s.Set(kv, nil)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 	for i := range kv.Data {
-		test.AF(t, kv.Data[i] == s.blocks["id1"][i], fmt.Sprintf("Expected %c but found %c", kv.Data[i], s.blocks["id1"]))
+		actualData, _ := s.blocks.Load("id1")
+		actual := actualData.(gifts.Block)[i]
+		test.AF(t, kv.Data[i] == actual, fmt.Sprintf("Expected %c but found %c", kv.Data[i], actual))
 	}
 
 	// Overwrite old data
@@ -30,7 +32,9 @@ func TestStorage_Set(t *testing.T) {
 	err = s.Set(kv, nil)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 	for i := range kv.Data {
-		test.AF(t, kv.Data[i] == s.blocks["id1"][i], fmt.Sprintf("Expected %c but found %c", kv.Data[i], s.blocks["id1"]))
+		actualData, _ := s.blocks.Load("id1")
+		actual := actualData.(gifts.Block)[i]
+		test.AF(t, kv.Data[i] == actual, fmt.Sprintf("Expected %c but found %c", kv.Data[i], actual))
 	}
 
 	// Parallel sets
@@ -59,8 +63,8 @@ func TestStorage_Set(t *testing.T) {
 
 		for j := range data {
 			expected := data[j]
-			actual := s.blocks[id][j]
-			test.AF(t, expected == actual, fmt.Sprintf("ID %s: Expected %c but found %c", id, expected, actual))
+			actual, _ := s.blocks.Load(id)
+			test.AF(t, expected == actual.(gifts.Block)[j], fmt.Sprintf("ID %s: Expected %c but found %c", id, expected, actual))
 		}
 	}
 }
@@ -77,14 +81,14 @@ func TestStorage_Get(t *testing.T) {
 
 	// Get empty data
 	t.Logf("TestStorage_Get: Starting test #2")
-	s.blocks["id1"] = make([]byte, 0)
+	s.blocks.Store("id1", gifts.Block(""))
 	err = s.Get("id1", data)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
 	test.AF(t, len(*data) == 0, fmt.Sprintf("Expected empty data, found %q", *data))
 
 	// Get some data
 	t.Logf("TestStorage_Get: Starting test #3")
-	s.blocks["id2"] = []byte("some data")
+	s.blocks.Store("id2", gifts.Block("some data"))
 	err = s.Get("id2", data)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
 	test.AF(t, string(*data) == "some data", fmt.Sprintf("Expected \"some data\", found %q", *data))
@@ -95,7 +99,7 @@ func TestStorage_Get(t *testing.T) {
 	for i := 0; i < nBlocks; i++ {
 		id := fmt.Sprintf("id_%d", i)
 		data := gifts.Block(fmt.Sprintf("data_%d", i))
-		s.blocks[id] = []byte(data)
+		s.blocks.Store(id, gifts.Block(data))
 	}
 
 	nGets := 100
@@ -131,10 +135,12 @@ func TestStorage_Unset(t *testing.T) {
 
 	// Unset data
 	t.Logf("TestStorage_Set: Starting test #2")
-	s.blocks["id1"] = []byte("data 1")
+	s.blocks.Store("id1", gifts.Block("data 1"))
 	err = s.Unset("id1", nil)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Unset failed: %v", err))
-	test.AF(t, len(s.blocks["id1"]) == 0, fmt.Sprintf("Expected no data, found %q", s.blocks["id1"]))
+	actual, found := s.blocks.Load("id1")
+	test.AF(t, !found, "Expected no data")
+	test.AF(t, actual == nil, fmt.Sprintf("Expected no data, found %q", actual))
 
 	// Parallel unsets
 	t.Logf("TestStorage_Set: Starting test #3")
@@ -142,7 +148,7 @@ func TestStorage_Unset(t *testing.T) {
 	for i := 0; i < nUnsets; i++ {
 		id := fmt.Sprintf("id_%d", i)
 		data := gifts.Block(fmt.Sprintf("data_%d", i))
-		s.blocks[id] = data
+		s.blocks.Store(id, data)
 	}
 
 	done := make(chan bool, nUnsets)
@@ -160,16 +166,19 @@ func TestStorage_Unset(t *testing.T) {
 
 	for i := 0; i < nUnsets; i++ {
 		id := fmt.Sprintf("id_%d", i)
-		test.AF(t, len(s.blocks[id]) == 0, fmt.Sprintf("Expected no data, found %q", s.blocks[id]))
+		actual, found := s.blocks.Load(id)
+		test.AF(t, !found, "Expected no data")
+		test.AF(t, actual == nil, fmt.Sprintf("Expected no data, found %q", actual))
 	}
 }
 
 func TestBenchmarkStorage_Set(t *testing.T) {
+	t.Skip()
 	g := generate.NewGenerate()
-	nRuns := int64(100)
+	nRuns := int64(20)
 	nTestsPerRun := int64(100000)
 
-	for blockSize := int64(16384); blockSize <= 32768; blockSize *= 2 {
+	for blockSize := int64(1); blockSize <= 32768; blockSize *= 2 {
 		runElapsed := int64(0)
 		for i := int64(0); i < nRuns; i++ {
 			s := NewStorage()
@@ -178,7 +187,7 @@ func TestBenchmarkStorage_Set(t *testing.T) {
 			testElapsed := int64(0)
 			for n := int64(0); n < nTestsPerRun; n++ {
 				id := fmt.Sprintf("id_%d", n)
-				kv := structure.BlockKV{ID: id, Data: make([]byte, blockSize)}
+				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
 				g.Read(kv.Data)
 
 				startTime := time.Now()
@@ -192,12 +201,13 @@ func TestBenchmarkStorage_Set(t *testing.T) {
 }
 
 func TestBenchmarkStorage_Get(t *testing.T) {
+	t.Skip()
 	g := generate.NewGenerate()
 	nRuns := int64(10)
 	nTestsPerRun := int64(1000)
 
 	// For block size
-	for blockSize := int64(4096); blockSize <= 4096; blockSize *= 2 {
+	for blockSize := int64(1); blockSize <= 4096; blockSize *= 2 {
 
 		// For number of readers
 		for nReaders := 1; nReaders <= 100; nReaders++ {
@@ -205,7 +215,7 @@ func TestBenchmarkStorage_Get(t *testing.T) {
 			s.logger.Enabled = false
 			for n := int64(0); n < nTestsPerRun; n++ {
 				id := fmt.Sprintf("id_%d", n)
-				kv := structure.BlockKV{ID: id, Data: make([]byte, blockSize)}
+				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
 				g.Read(kv.Data)
 				s.Set(&kv, nil)
 			}
@@ -228,7 +238,7 @@ func TestBenchmarkStorage_Get(t *testing.T) {
 							testElapsed += time.Since(startTime).Nanoseconds()
 						}
 
-						done <- 1000 * float32(blockSize) / float32(testElapsed / nTestsPerRun)
+						done <- 1000 * float32(blockSize) / float32(testElapsed/nTestsPerRun)
 					}()
 				}
 
