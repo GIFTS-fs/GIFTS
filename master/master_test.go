@@ -81,7 +81,6 @@ func TestMasterLocalOne(t *testing.T) {
 	r1 := structure.FileCreateReq{Fname: "f1", Fsize: 1, Rfactor: 1}
 
 	af(mOne.Create(&r1, &a) == nil, "Create 1 block file failed")
-	t.Logf("f1 block: %v\n", a)
 	af(len(a) == 1, "1 byte should have 1 block")
 	af(len(a[0].BlockID) > 0, "bolck ID must be a non-empty string")
 	af(len(a[0].Replicas) == 1, "one master have one replica to assign")
@@ -122,8 +121,8 @@ func TestMasterRPCEmpty(t *testing.T) {
 	}
 
 	mmEmpty := NewMaster([]string{})
-	ServRPC(mmEmpty, "localhost:3001")
-	mEmpty := NewConn("localhost:3001")
+	ServRPC(mmEmpty, "localhost:4001")
+	mEmpty := NewConn("localhost:4001")
 
 	var err error
 	var a []structure.BlockAssign
@@ -144,7 +143,6 @@ func TestMasterRPCEmpty(t *testing.T) {
 
 	a, err = mEmpty.Create(r1.Fname, r1.Fsize, r1.Rfactor)
 	af(err == nil, "Create 1 block file failed")
-	t.Logf("f1 block: %v\n", a)
 	af(len(a) == 1, "1 byte should have 1 block")
 	af(len(a[0].BlockID) > 0, "bolck ID must be a non-empty string")
 	af(len(a[0].Replicas) == 0, "empty master have no replicas to assign")
@@ -182,8 +180,8 @@ func TestMasterRPCOne(t *testing.T) {
 	}
 
 	mmOne := NewMaster([]string{"s1"})
-	ServRPC(mmOne, "localhost:3001")
-	mOne := NewConn("localhost:3001")
+	ServRPC(mmOne, "localhost:4002")
+	mOne := NewConn("localhost:4002")
 
 	var err error
 	var a []structure.BlockAssign
@@ -204,7 +202,6 @@ func TestMasterRPCOne(t *testing.T) {
 
 	a, err = mOne.Create(r1.Fname, r1.Fsize, r1.Rfactor)
 	af(err == nil, "Create 1 block file failed")
-	t.Logf("f1 block: %v\n", a)
 	af(len(a) == 1, "1 byte should have 1 block")
 	af(len(a[0].BlockID) > 0, "bolck ID must be a non-empty string")
 	af(len(a[0].Replicas) == 1, "one master have one replica to assign")
