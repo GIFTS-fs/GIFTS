@@ -3,6 +3,7 @@ package master
 import (
 	"math/rand"
 	"strconv"
+	"time"
 
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
@@ -66,7 +67,7 @@ func (m *Master) pickReadReplica(fm *fMeta) (assignment []structure.BlockAssign)
 		}
 
 		// Policy 1: (badly) random pick one
-		pick := rand.New(rand.NewSource(int64(fm.fSize))).Intn(nReplica)
+		pick := rand.New(rand.NewSource(int64(fm.fSize) ^ time.Now().UnixNano())).Intn(nReplica)
 		assignment[i].Replicas = []string{completeAssignment.Replicas[pick]}
 
 		// Policy 2: LRU
