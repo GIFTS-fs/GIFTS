@@ -1,6 +1,10 @@
 package master
 
-import "github.com/GIFTS-fs/GIFTS/structure"
+import (
+	"sync"
+
+	"github.com/GIFTS-fs/GIFTS/structure"
+)
 
 type fMeta struct {
 	fSize       int                     // size of the file, to handle padding
@@ -8,7 +12,8 @@ type fMeta struct {
 	rFactor     uint                    // how important the user thinks this file is
 	assignments []structure.BlockAssign // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) >= 1
 
-	nRead uint64 // expontionally decaying read counter
+	nRead       uint64 // expontionally decaying read counter
+	trafficLock sync.Mutex
 }
 
 // fCreate tries to map fb to fname, return loaded=true if already exists.

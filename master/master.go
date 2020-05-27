@@ -6,14 +6,19 @@ import (
 	"net/http"
 	"net/rpc"
 	"sync"
+	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
-// MaxRfactor limits the value of rfactor
-const MaxRfactor = 256
+const (
+	// MaxRfactor limits the value of rfactor
+	MaxRfactor = 256
+	// rebalanceIntervalSec
+	rebalanceIntervalSec = 10
+)
 
 // Master is the master of GIFTS
 type Master struct {
@@ -21,8 +26,8 @@ type Master struct {
 
 	fMap sync.Map
 
-	storages        []*storage.RPCStorage
-	storageLoad     sync.Map
+	storages []*storage.RPCStorage
+	// storageLoad     sync.Map
 	createClockHand int
 }
 
@@ -38,6 +43,19 @@ func NewMaster(storageAddr []string) *Master {
 	}
 
 	return &m
+}
+
+func (m *Master) background() {
+	// TODO: make the interval dynamic?
+	tickerRebalance := time.NewTicker(time.Second * rebalanceIntervalSec)
+	defer tickerRebalance.Stop()
+
+	for {
+		select {
+		case <-tickerRebalance.C:
+			go m.balance()
+		}
+	}
 }
 
 // ServRPC spawns a thread listen to RPC traffic
@@ -56,6 +74,7 @@ func ServRPC(m *Master, addr string) (err error) {
 
 	mux := http.NewServeMux()
 	mux.Handle(RPCPathMaster, serv)
+	go m.background()
 	go http.Serve(l, mux)
 	return
 }
@@ -96,9 +115,6 @@ func (m *Master) Lookup(fname string, ret **structure.FileBlocks) error {
 		return fmt.Errorf("File %q not found", fname)
 	}
 
-	// TODO: BALANCE
-	//fm.nRead++
-
 	fb := &structure.FileBlocks{
 		Fsize:       fm.fSize,
 		Assignments: m.pickReadReplica(fm),
@@ -106,6 +122,10 @@ func (m *Master) Lookup(fname string, ret **structure.FileBlocks) error {
 
 	// m.logger.Printf("Lookup(%q): %v\n", fname, fb)
 	*ret = fb
+
+	fm.trafficLock.Lock()
+	defer fm.trafficLock.Unlock()
+	fm.nRead++
 
 	return nil
 }
