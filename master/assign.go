@@ -53,7 +53,7 @@ func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assi
 	return
 }
 
-// pickReadReplica for the file, return value has at least one conn,
+// pickReadReplica for the file
 func (m *Master) pickReadReplica(fm *fMeta) (assignment []structure.BlockAssign) {
 	assignment = make([]structure.BlockAssign, fm.nBlocks)
 
