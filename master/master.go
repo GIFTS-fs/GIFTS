@@ -14,30 +14,30 @@ import (
 )
 
 const (
-	// MaxRfactor limits the value of rfactor
-	MaxRfactor = 256
+	// MaxRFactor limits the value of rfactor
+	MaxRFactor = 256
+
 	// rebalanceIntervalSec
 	rebalanceIntervalSec = 10
 )
 
 // Master is the master of GIFTS
 type Master struct {
-	logger *gifts.Logger
-
-	fMap sync.Map
-
-	storages []*storage.RPCStorage
-	// storageLoad     sync.Map
+	logger          *gifts.Logger
+	fMap            sync.Map
+	storages        []*storage.RPCStorage
 	createClockHand int
 }
 
-// NewMaster is the constructor for master
+// NewMaster creates a new GIFTS Master.  It requires a list of addresses of
+// all Storage nodes.
 func NewMaster(storageAddr []string) *Master {
 	m := Master{
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		createClockHand: 0,
 	}
 
+	// Store a connection to every Storage node
 	for _, addr := range storageAddr {
 		m.storages = append(m.storages, storage.NewRPCStorage(addr))
 	}
@@ -58,11 +58,12 @@ func (m *Master) background() {
 	}
 }
 
-// ServRPC spawns a thread listen to RPC traffic
-func ServRPC(m *Master, addr string) (err error) {
-	serv := rpc.NewServer()
+// ServeRPC makes the Master accessible via RPC at the specified IP address and
+// port.
+func ServeRPC(m *Master, addr string) (err error) {
+	server := rpc.NewServer()
 
-	err = serv.RegisterName("Master", m)
+	err = server.RegisterName("Master", m)
 	if err != nil {
 		return
 	}
@@ -73,37 +74,67 @@ func ServRPC(m *Master, addr string) (err error) {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle(RPCPathMaster, serv)
+	mux.Handle(RPCPathMaster, server)
+
+	// Start Master's background task that periodically tries to rebalance the
+	// replicas amongst the Storage nodes.
 	go m.background()
+
+	// Serve the Master at the specified IP address and port
 	go http.Serve(l, mux)
+
 	return
 }
 
 // Create a file: assign replicas for the clients to write
-func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.BlockAssign) error {
-	if m.fExist(req.Fname) {
-		return fmt.Errorf("File %q already exists", req.Fname)
+func (m *Master) Create(request *structure.FileCreateReq, assignments *[]structure.BlockAssign) error {
+	// RFactor must be at least 1
+	if request.RFactor < 1 {
+		msg := "RFactor must be at least 1"
+		m.logger.Printf("Master.Create(%v) => %q", *request, msg)
+		return fmt.Errorf(msg)
 	}
 
-	if req.Rfactor > MaxRfactor {
-		return fmt.Errorf("Rfactor %v too large (> %v)", req.Rfactor, MaxRfactor)
+	// File with the same name already exists
+	if m.fileExists(request.FName) {
+		msg := fmt.Sprintf("File %q already exists", request.FName)
+		m.logger.Printf("Master.Create(%v) => %q", *request, msg)
+		return fmt.Errorf(msg)
 	}
 
-	nBlocks := gifts.NBlocks(req.Fsize)
+	// DLAD: Why is MaxRFactor a constant?  Shouldn't it be based on the number
+	// of storage nodes (i.e. you have a check for this in makeAssignment, why
+	// not make it an error)?
+	if request.RFactor > MaxRFactor {
+		msg := fmt.Sprintf("RFactor %v is too large (> %v)", request.RFactor, MaxRFactor)
+		m.logger.Printf("Master.Create(%v) => %q", *request, msg)
+		return fmt.Errorf(msg)
+	}
+
+	// Split the file into blocks
+	nBlocks := gifts.NBlocks(request.FSize)
 	fm := &fMeta{
-		fSize:       req.Fsize,
+		fSize:       request.FSize,
 		nBlocks:     nBlocks,
-		rFactor:     req.Rfactor,
-		assignments: m.makeAssignment(req, nBlocks),
+		rFactor:     request.RFactor,
+		assignments: m.makeAssignment(request, nBlocks),
 		nRead:       0,
 	}
 
-	if _, loaded := m.fCreate(req.Fname, fm); loaded {
-		return fmt.Errorf("File %q already created", req.Fname)
+	// Store the block-to-Storage-node mapping
+	// DLAD: The master might need to store indexes into m.storages instead of
+	// the IP addresses.  When we increase replication, we'll need to find an
+	// storage not already used.
+	if _, loaded := m.fCreate(request.FName, fm); loaded {
+		msg := fmt.Sprintf("File %q already created", request.FName)
+		m.logger.Printf("Master.Create(%v) => %q", *request, msg)
+		return fmt.Errorf(msg)
 	}
 
-	// m.logger.Printf("Created(%q): %v\n", req.Fname, fm.assignments)
+	// Set the return value
 	*assignments = fm.assignments
+
+	m.logger.Printf("Master.Create(%v) => success", *request)
 	return nil
 }
 

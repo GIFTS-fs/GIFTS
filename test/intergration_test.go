@@ -17,7 +17,7 @@ func TestIntergrationHelloWorld(t *testing.T) {
 	addrStorages := []string{addrStorage1, addrStorage2}
 
 	m := master.NewMaster(addrStorages)
-	if master.ServRPC(m, addrMaster) != nil {
+	if master.ServeRPC(m, addrMaster) != nil {
 		t.Errorf("Failed to serv master %v", m)
 	}
 
