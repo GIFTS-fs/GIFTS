@@ -23,12 +23,10 @@ func (m *Master) nextStorage() (s *storage.RPCStorage) {
 }
 
 // makeAssignment for the request, assume all arguments are valid to the best knowledge of the caller
-func (m *Master) makeAssignment(request *structure.FileCreateReq, nBlocks int) (assignments []structure.BlockAssign) {
+func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assignments []structure.BlockAssign) {
 	// WARN: SHOULD NOT HAVE TYPE CASTING,
 	// its safety is based on the MaxRFactor is not larger than the overflow number
-	// DLAD: I'm not a fan of silently changing the user's input.  This should
-	// be an error.
-	nReplica := int(request.RFactor)
+	nReplica := int(req.Rfactor)
 	if nReplica > len(m.storages) {
 		nReplica = len(m.storages)
 	}
@@ -44,7 +42,7 @@ func (m *Master) makeAssignment(request *structure.FileCreateReq, nBlocks int) (
 	// Policy 3: CLOCK
 	for i := range assignments {
 		// WARN: very innocent way to make BlockID
-		assignments[i].BlockID = request.FName + strconv.FormatInt(int64(i), 10)
+		assignments[i].BlockID = req.Fname + strconv.FormatInt(int64(i), 10)
 		for j := 0; j < nReplica; j++ {
 			// uniqueness of each replica is ensured by
 			// the if check above, that ensures nReplica

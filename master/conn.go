@@ -31,7 +31,7 @@ func (c *Conn) makeCreate(rcli *gifts.RPCClient) {
 		err := rcli.Call(func(conn *rpc.Client) error {
 			return conn.Call(
 				RPCMethodCreate,
-				&structure.FileCreateReq{FName: fname, FSize: fsize, RFactor: rfactor},
+				&structure.FileCreateReq{Fname: fname, Fsize: fsize, Rfactor: rfactor},
 				&ret,
 			)
 		})

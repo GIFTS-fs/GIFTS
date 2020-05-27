@@ -3,9 +3,9 @@ package structure
 // FileCreateReq is the request type of Master.Create(),
 // needed since Go RPC only support one argument
 type FileCreateReq struct {
-	FName   string
-	FSize   int
-	RFactor uint
+	Fname   string
+	Fsize   int
+	Rfactor uint
 }
 
 // BlockAssign is the slice element of return value of Master.Create(),

@@ -33,7 +33,7 @@ func (m *Master) fLookup(fname string) (*fMeta, bool) {
 	return fm.(*fMeta), true
 }
 
-func (m *Master) fileExists(fName string) bool {
-	_, exists := m.fLookup(fName)
-	return exists
+func (m *Master) fExist(fName string) bool {
+	_, exist := m.fLookup(fName)
+	return exist
 }

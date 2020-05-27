@@ -87,37 +87,37 @@ func ServeRPC(m *Master, addr string) (err error) {
 }
 
 // Create a file: assign replicas for the clients to write
-func (m *Master) Create(request *structure.FileCreateReq, assignments *[]structure.BlockAssign) error {
+func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.BlockAssign) error {
 	// RFactor must be at least 1
-	if request.RFactor < 1 {
+	if req.Rfactor < 1 {
 		msg := "RFactor must be at least 1"
-		m.logger.Printf("Master.Create(%v) => %q", *request, msg)
+		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
 		return fmt.Errorf(msg)
 	}
 
 	// File with the same name already exists
-	if m.fileExists(request.FName) {
-		msg := fmt.Sprintf("File %q already exists", request.FName)
-		m.logger.Printf("Master.Create(%v) => %q", *request, msg)
+	if m.fExist(req.Fname) {
+		msg := fmt.Sprintf("File %q already exists", req.Fname)
+		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
 		return fmt.Errorf(msg)
 	}
 
 	// DLAD: Why is MaxRFactor a constant?  Shouldn't it be based on the number
 	// of storage nodes (i.e. you have a check for this in makeAssignment, why
 	// not make it an error)?
-	if request.RFactor > MaxRFactor {
-		msg := fmt.Sprintf("RFactor %v is too large (> %v)", request.RFactor, MaxRFactor)
-		m.logger.Printf("Master.Create(%v) => %q", *request, msg)
+	if req.Rfactor > MaxRFactor {
+		msg := fmt.Sprintf("RFactor %v is too large (> %v)", req.Rfactor, MaxRFactor)
+		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
 		return fmt.Errorf(msg)
 	}
 
 	// Split the file into blocks
-	nBlocks := gifts.NBlocks(request.FSize)
+	nBlocks := gifts.NBlocks(req.Fsize)
 	fm := &fMeta{
-		fSize:       request.FSize,
+		fSize:       req.Fsize,
 		nBlocks:     nBlocks,
-		rFactor:     request.RFactor,
-		assignments: m.makeAssignment(request, nBlocks),
+		rFactor:     req.Rfactor,
+		assignments: m.makeAssignment(req, nBlocks),
 		nRead:       0,
 	}
 
@@ -125,16 +125,16 @@ func (m *Master) Create(request *structure.FileCreateReq, assignments *[]structu
 	// DLAD: The master might need to store indexes into m.storages instead of
 	// the IP addresses.  When we increase replication, we'll need to find an
 	// storage not already used.
-	if _, loaded := m.fCreate(request.FName, fm); loaded {
-		msg := fmt.Sprintf("File %q already created", request.FName)
-		m.logger.Printf("Master.Create(%v) => %q", *request, msg)
+	if _, loaded := m.fCreate(req.Fname, fm); loaded {
+		msg := fmt.Sprintf("File %q already created", req.Fname)
+		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
 		return fmt.Errorf(msg)
 	}
 
 	// Set the return value
 	*assignments = fm.assignments
 
-	m.logger.Printf("Master.Create(%v) => success", *request)
+	m.logger.Printf("Master.Create(%v) => success", *req)
 	return nil
 }
 
