@@ -139,24 +139,29 @@ func (m *Master) Create(request *structure.FileCreateReq, assignments *[]structu
 }
 
 // Lookup a file: find mapping for a file
-func (m *Master) Lookup(fname string, ret **structure.FileBlocks) error {
-	fm, found := m.fLookup(fname)
+// DLAD: why is the return value a pointer to a pointer?
+func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
+	// Attempt to look up where the file is stored
+	fm, found := m.fLookup(fName)
 
+	// Check if the file exists
 	if !found {
-		return fmt.Errorf("File %q not found", fname)
+		msg := fmt.Sprintf("File %q not found", fName)
+		m.logger.Printf("Master.Lookup(%q) => %q", fName, msg)
+		return fmt.Errorf(msg)
 	}
 
-	fb := &structure.FileBlocks{
+	// Figure out which replicas the client should read from
+	*ret = &structure.FileBlocks{
 		Fsize:       fm.fSize,
 		Assignments: m.pickReadReplica(fm),
 	}
 
-	// m.logger.Printf("Lookup(%q): %v\n", fname, fb)
-	*ret = fb
-
+	// Keep track of the number of times this file has been read
 	fm.trafficLock.Lock()
 	defer fm.trafficLock.Unlock()
 	fm.nRead++
 
+	m.logger.Printf("Master.Lookup(%q) => success", fName)
 	return nil
 }

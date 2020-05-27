@@ -63,12 +63,16 @@ func (m *Master) pickReadReplica(fm *fMeta) (assignment []structure.BlockAssign)
 	for i, completeAssignment := range fm.assignments {
 		assignment[i].BlockID = completeAssignment.BlockID
 
+		// DLAD: Is there a scenario in which this happens and it's not an
+		// error?
 		nReplica := len(completeAssignment.Replicas)
 		if nReplica <= 0 {
 			continue
 		}
 
-		// Policy 1: (badly) random pick one
+		// Policy 1: (badly) randomly pick one
+		// DLAD: Do we need to reseed the RNG on every call?
+		// DLAD: Is there a reason to create a new source instead of using the top-level RNG?
 		pick := rand.New(rand.NewSource(int64(fm.fSize) ^ time.Now().UnixNano())).Intn(nReplica)
 		assignment[i].Replicas = []string{completeAssignment.Replicas[pick]}
 
