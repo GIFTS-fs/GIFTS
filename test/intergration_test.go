@@ -1,0 +1,52 @@
+package test
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+
+	"github.com/GIFTS-fs/GIFTS/client"
+	"github.com/GIFTS-fs/GIFTS/master"
+	"github.com/GIFTS-fs/GIFTS/storage"
+)
+
+func TestIntergrationHelloWorld(t *testing.T) {
+	addrMaster := "localhost:22321"
+	addrStorage1 := "localhost:22322"
+	addrStorage2 := "localhost:22323"
+	addrStorages := []string{addrStorage1, addrStorage2}
+
+	m := master.NewMaster(addrStorages)
+	if master.ServRPC(m, addrMaster) != nil {
+		t.Errorf("Failed to serv master %v", m)
+	}
+
+	s1 := storage.NewStorage()
+	if storage.ServeRPC(s1, addrStorage1) != nil {
+		t.Errorf("Failed to serv storage %v", s1)
+	}
+
+	s2 := storage.NewStorage()
+	if storage.ServeRPC(s2, addrStorage2) != nil {
+		t.Errorf("Failed to serv storage %v", s2)
+	}
+
+	c := client.NewClient([]string{addrMaster})
+
+	f1Name := "helloWorld"
+	f1Rfactor := uint(2)
+	f1Data := []byte(strings.Repeat("Hello World!", 1024))
+
+	if c.Store(f1Name, f1Rfactor, f1Data) != nil {
+		t.Errorf("Failed to store %v", f1Data)
+	}
+
+	dataRead, err := c.Read(f1Name)
+	if err != nil {
+		t.Errorf("Failed to read %v", f1Name)
+	}
+
+	if bytes.Compare(dataRead, f1Data) != 0 {
+		t.Errorf("Data mismatch: want %v got %v", f1Data, dataRead)
+	}
+}
