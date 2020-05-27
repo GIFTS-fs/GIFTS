@@ -220,12 +220,13 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 
 	s := NewStorage()
 	s.logger.Enabled = false
+	ServeRPC(s, "localhost:4000")
 
 	// For block size
-	for blockSize := int64(2048); blockSize <= 4096; blockSize *= 2 {
+	for blockSize := int64(128); blockSize <= 4096; blockSize *= 2 {
 
 		// For number of readers
-		for nReaders := 95; nReaders <= 100; nReaders++ {
+		for nReaders := 97; nReaders <= 100; nReaders++ {
 			for n := int64(0); n < nTestsPerRun; n++ {
 				id := fmt.Sprintf("id_%d", n)
 				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
