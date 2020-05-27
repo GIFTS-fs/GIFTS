@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	// MaxRFactor limits the value of rfactor
-	MaxRFactor = 256
+	// MaxRfactor limits the value of rfactor
+	MaxRfactor = 256
 
 	// rebalanceIntervalSec
 	rebalanceIntervalSec = 10
@@ -102,11 +102,10 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 		return fmt.Errorf(msg)
 	}
 
-	// DLAD: Why is MaxRFactor a constant?  Shouldn't it be based on the number
-	// of storage nodes (i.e. you have a check for this in makeAssignment, why
-	// not make it an error)?
-	if req.Rfactor > MaxRFactor {
-		msg := fmt.Sprintf("RFactor %v is too large (> %v)", req.Rfactor, MaxRFactor)
+	// Set some (arbitrary) limit on the maximum number of replicas, regardless
+	// of the number of Storage nodes.
+	if req.Rfactor > MaxRfactor {
+		msg := fmt.Sprintf("RFactor %v is too large (> %v)", req.Rfactor, MaxRfactor)
 		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
 		return fmt.Errorf(msg)
 	}
