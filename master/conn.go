@@ -12,7 +12,7 @@ import (
 type Conn struct {
 	addr   string
 	Create CreateFunc
-	Read   ReadFunc
+	Lookup LookupFunc
 }
 
 // NewConn constructor for Client.Conn
@@ -20,7 +20,7 @@ func NewConn(addr string) *Conn {
 	c := Conn{addr: addr}
 	rpcClient := gifts.NewRPCClient(addr, RPCPathMaster)
 	c.makeCreate(rpcClient)
-	c.makeRead(rpcClient)
+	c.makeLookup(rpcClient)
 	return &c
 }
 
@@ -31,7 +31,7 @@ func (c *Conn) makeCreate(rcli *gifts.RPCClient) {
 		err := rcli.Call(func(conn *rpc.Client) error {
 			return conn.Call(
 				RPCMethodCreate,
-				structure.FileCreateReq{Fname: fname, Fsize: fsize, Rfactor: rfactor},
+				&structure.FileCreateReq{Fname: fname, Fsize: fsize, Rfactor: rfactor},
 				&ret,
 			)
 		})
@@ -40,12 +40,12 @@ func (c *Conn) makeCreate(rcli *gifts.RPCClient) {
 }
 
 // TODO: fix hard-coding for RPC
-func (c *Conn) makeRead(rcli *gifts.RPCClient) {
-	c.Read = func(fname string) (*structure.FileBlocks, error) {
+func (c *Conn) makeLookup(rcli *gifts.RPCClient) {
+	c.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		var ret *structure.FileBlocks
 		err := rcli.Call(func(conn *rpc.Client) error {
 			return conn.Call(
-				RPCMethodRead,
+				RPCMethodLookup,
 				fname,
 				&ret,
 			)

@@ -145,7 +145,7 @@ func TestClient_Read(t *testing.T) {
 
 	// File does not exist
 	t.Logf("TestClient_Read: Starting test #1")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		return nil, fmt.Errorf("%q does not exist", fname)
 	}
 	ret, err := c.Read("Invalid file")
@@ -153,7 +153,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Master fails
 	t.Logf("TestClient_Read: Starting test #2")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		return nil, fmt.Errorf("Master failed")
 	}
 	ret, err = c.Read("filename")
@@ -161,7 +161,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Master returns incorrect number of assignments
 	t.Logf("TestClient_Read: Starting test #3")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		ret := structure.FileBlocks{Fsize: gifts.GiftsBlockSize * 2, Assignments: []structure.BlockAssign{}}
 		return &ret, nil
 	}
@@ -170,7 +170,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Master returns incorrect number of Storage nodes for each block
 	t.Logf("TestClient_Read: Starting test #4")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		block := structure.BlockAssign{BlockID: "id1", Replicas: []string{}}
 		ret := structure.FileBlocks{Fsize: 1, Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
@@ -180,7 +180,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Storage node fails
 	t.Logf("TestClient_Read: Starting test #5")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		block := structure.BlockAssign{BlockID: "id1", Replicas: []string{"r1"}}
 		ret := structure.FileBlocks{Fsize: 1, Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
@@ -190,7 +190,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Empty file
 	t.Logf("TestClient_Read: Starting test #6")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		ret := structure.FileBlocks{Fsize: 0, Assignments: []structure.BlockAssign{}}
 		return &ret, nil
 	}
@@ -201,7 +201,7 @@ func TestClient_Read(t *testing.T) {
 	// File with one block
 	t.Logf("TestClient_Read: Starting test #7")
 	data = []byte("Hello World")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		block := structure.BlockAssign{BlockID: "file_1_1", Replicas: []string{addr1}}
 		ret := structure.FileBlocks{Fsize: len(data), Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
@@ -218,7 +218,7 @@ func TestClient_Read(t *testing.T) {
 	// File with multiple blocks
 	t.Logf("TestClient_Read: Starting test #8")
 	expected := strings.Repeat("test string", 1+(gifts.GiftsBlockSize/len("test string")))
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		block1 := structure.BlockAssign{BlockID: "file_2_1", Replicas: []string{addr1}}
 		block2 := structure.BlockAssign{BlockID: "file_2_2", Replicas: []string{addr2}}
 		fsize := len(expected)
