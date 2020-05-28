@@ -2,6 +2,7 @@ package master
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -41,6 +42,8 @@ func NewMaster(storageAddr []string) *Master {
 	for _, addr := range storageAddr {
 		m.storages = append(m.storages, storage.NewRPCStorage(addr))
 	}
+
+	rand.Seed(time.Now().UnixNano())
 
 	return &m
 }

@@ -265,20 +265,11 @@ func TestMaster_Create(t *testing.T) {
 	var clock int
 	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"})
 
-	// Requested RFactor is 0
-	fName = "large-RFactor"
-	request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: 0}
-	err = m.Create(&request, &assignments)
-	af(err != nil, "Master should not accept RFactor=0")
-
 	// Requested RFactor is too large
-	// DLAD: Why is MaxRFactor a constant?  Shouldn't it be based on the number of storage nodes?
-	if false {
-		fName = "large-RFactor"
-		request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: uint(len(m.storages) + 1)}
-		err = m.Create(&request, &assignments)
-		af(err != nil, "Master should not accept RFactor sizes that are larger than the number of storage nodes")
-	}
+	fName = "large-RFactor"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: 257}
+	err = m.Create(&request, &assignments)
+	af(err != nil, "Master should not accept RFactor > 257")
 
 	// File with same name already exists
 	fName = "duplicate"
