@@ -1,5 +1,7 @@
 package gifts
 
+/*
+
 import (
 	"fmt"
 	"io"
@@ -45,3 +47,5 @@ func NewLogger(name, addr string, enabled bool) *Logger {
 
 	return &Logger{logger: log.New(giftsLogWritter, prefix, log.LstdFlags), Enabled: enabled}
 }
+
+*/

@@ -12,7 +12,7 @@ import (
 
 // Client is the client of GIFTS
 type Client struct {
-	logger   *gifts.Logger // PRODUCTION: banish this
+	// logger   *gifts.Logger // PRODUCTION: banish this
 	master   *master.Conn
 	storages sync.Map
 }
@@ -20,8 +20,8 @@ type Client struct {
 // NewClient creates a new GIFTS client
 func NewClient(masters []string) *Client {
 	c := Client{}
-	c.logger = gifts.NewLogger("Client", "end-user", true) // PRODUCTION: banish this
-	c.master = master.NewConn(masters[0])                  // WARN: hard-code for single master
+	// c.logger = gifts.NewLogger("Client", "end-user", true) // PRODUCTION: banish this
+	c.master = master.NewConn(masters[0]) // WARN: hard-code for single master
 	return &c
 }
 
@@ -44,14 +44,14 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	// Make sure file name is not empty
 	if fname == "" {
 		msg := "File name cannot be empty"
-		c.logger.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
+		// c.logger.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
 		return fmt.Errorf(msg)
 	}
 
 	// Make sure rfactor is not 0
 	if rfactor <= 0 {
 		msg := "Replication factor must be positive"
-		c.logger.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
+		// c.logger.Printf("Client.Store(fname=%q, rfactor=%d) => %q", fname, rfactor, msg)
 		return fmt.Errorf(msg)
 	}
 
@@ -63,7 +63,7 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	// the file.
 	assignments, err := c.master.Create(fname, fsize, rfactor)
 	if err != nil {
-		c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
+		// c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, err)
 		return err
 	}
 
@@ -73,7 +73,7 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	// write to.
 	if nBlocks != len(assignments) {
 		msg := fmt.Sprintf("Need %d blocks but the Master gave us %d", nBlocks, len(assignments))
-		c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %q", fname, rfactor, fsize, msg)
+		// c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %q", fname, rfactor, fsize, msg)
 		return fmt.Errorf(msg)
 	}
 
@@ -121,11 +121,11 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 
 	wg.Wait()
 
-	if terr == nil {
-		c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => success", fname, rfactor, fsize)
-	} else {
-		c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, terr)
-	}
+	// if terr == nil {
+	// 	c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => success", fname, rfactor, fsize)
+	// } else {
+	// 	c.logger.Printf("Client.Store(fname=%q, rfactor=%d, fsize=%d) => %v", fname, rfactor, fsize, terr)
+	// }
 	return terr
 }
 
@@ -140,7 +140,7 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	// Get location of each block of the file from the Master
 	fb, err := c.master.Lookup(fname)
 	if err != nil {
-		c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
+		// c.logger.Printf("Client.Read(fname=%q) => %v", fname, err)
 		return []byte{}, err
 	}
 
@@ -148,7 +148,7 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	nBlocks := gifts.NBlocks(fb.Fsize)
 	if len(fb.Assignments) != nBlocks {
 		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
-		c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
+		// c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
 		return []byte{}, fmt.Errorf(msg)
 	}
 
@@ -204,10 +204,10 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	wg.Wait()
 
 	if terr != nil {
-		c.logger.Printf("Client.Read(fname=%q) => %v", fname, terr)
+		// c.logger.Printf("Client.Read(fname=%q) => %v", fname, terr)
 		return []byte{}, terr
 	}
 
-	c.logger.Printf("Client.Read(fname=%q) => %d bytes", fname, fb.Fsize)
+	// c.logger.Printf("Client.Read(fname=%q) => %d bytes", fname, fb.Fsize)
 	return bytesRead, nil
 }
