@@ -2,6 +2,7 @@ package master
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -14,37 +15,43 @@ import (
 )
 
 const (
-	// MaxRfactor limits the value of rfactor
+	// MaxRfactor limits the value of rfactor,
+	// mere a magic number to prevent uint overlows int
 	MaxRfactor = 256
+
 	// rebalanceIntervalSec
 	rebalanceIntervalSec = 10
 )
 
 // Master is the master of GIFTS
 type Master struct {
-	logger *gifts.Logger
-
-	fMap sync.Map
-
-	storages []*storage.RPCStorage
-	// storageLoad     sync.Map
+	logger          *gifts.Logger
+	fMap            sync.Map
+	storages        []*storage.RPCStorage
 	createClockHand int
 }
 
-// NewMaster is the constructor for master
+// NewMaster creates a new GIFTS Master.
+// It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string) *Master {
 	m := Master{
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		createClockHand: 0,
 	}
 
+	// Store a connection to every Storage node
 	for _, addr := range storageAddr {
 		m.storages = append(m.storages, storage.NewRPCStorage(addr))
 	}
 
+	rand.Seed(time.Now().UnixNano())
+
 	return &m
 }
 
+// background tasks of master:
+//
+// 1. peridically attempt to rebalnce load across storage
 func (m *Master) background() {
 	// TODO: make the interval dynamic?
 	tickerRebalance := time.NewTicker(time.Second * rebalanceIntervalSec)
@@ -58,11 +65,12 @@ func (m *Master) background() {
 	}
 }
 
-// ServRPC spawns a thread listen to RPC traffic
-func ServRPC(m *Master, addr string) (err error) {
-	serv := rpc.NewServer()
+// ServeRPC makes the Master accessible via RPC
+// at the specified IP address and port.
+func ServeRPC(m *Master, addr string) (err error) {
+	server := rpc.NewServer()
 
-	err = serv.RegisterName("Master", m)
+	err = server.RegisterName("Master", m)
 	if err != nil {
 		return
 	}
@@ -73,22 +81,35 @@ func ServRPC(m *Master, addr string) (err error) {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle(RPCPathMaster, serv)
+	mux.Handle(RPCPathMaster, server)
+
+	// Start Master's background tasks
 	go m.background()
+
+	// Serve the Master at the specified IP address and port
 	go http.Serve(l, mux)
+
 	return
 }
 
 // Create a file: assign replicas for the clients to write
 func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.BlockAssign) error {
+	// File with the same name already exists
 	if m.fExist(req.Fname) {
-		return fmt.Errorf("File %q already exists", req.Fname)
+		err := fmt.Errorf("File %q already exists", req.Fname)
+		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		return err
 	}
 
+	// Set some (arbitrary) limit on the maximum number of replicas, regardless
+	// of the number of Storage nodes.
 	if req.Rfactor > MaxRfactor {
-		return fmt.Errorf("Rfactor %v too large (> %v)", req.Rfactor, MaxRfactor)
+		err := fmt.Errorf("RFactor %v is too large (> %v)", req.Rfactor, MaxRfactor)
+		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		return err
 	}
 
+	// Split the file into blocks
 	nBlocks := gifts.NBlocks(req.Fsize)
 	fm := &fMeta{
 		fSize:       req.Fsize,
@@ -98,34 +119,46 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 		nRead:       0,
 	}
 
+	// Store the block-to-Storage-node mapping
+	// DLAD: The master might need to store indexes into m.storages instead of
+	// the IP addresses.  When we increase replication, we'll need to find an
+	// storage not already used.
 	if _, loaded := m.fCreate(req.Fname, fm); loaded {
-		return fmt.Errorf("File %q already created", req.Fname)
+		err := fmt.Errorf("File %q already created", req.Fname)
+		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		return err
 	}
 
-	// m.logger.Printf("Created(%q): %v\n", req.Fname, fm.assignments)
+	// Set the return value
 	*assignments = fm.assignments
+
+	m.logger.Printf("Master.Create(%v) => success", *req)
 	return nil
 }
 
 // Lookup a file: find mapping for a file
-func (m *Master) Lookup(fname string, ret **structure.FileBlocks) error {
-	fm, found := m.fLookup(fname)
+func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
+	// Attempt to look up where the file is stored
+	fm, found := m.fLookup(fName)
 
+	// Check if the file exists
 	if !found {
-		return fmt.Errorf("File %q not found", fname)
+		err := fmt.Errorf("File %q not found", fName)
+		m.logger.Printf("Master.Lookup(%q) => %q", fName, err)
+		return err
 	}
 
-	fb := &structure.FileBlocks{
+	// Figure out which replicas the client should read from
+	*ret = &structure.FileBlocks{
 		Fsize:       fm.fSize,
 		Assignments: m.pickReadReplica(fm),
 	}
 
-	// m.logger.Printf("Lookup(%q): %v\n", fname, fb)
-	*ret = fb
-
+	// Keep track of the number of times this file has been read
 	fm.trafficLock.Lock()
 	defer fm.trafficLock.Unlock()
 	fm.nRead++
 
+	m.logger.Printf("Master.Lookup(%q) => success", fName)
 	return nil
 }

@@ -1,6 +1,7 @@
 package master
 
 import (
+	"fmt"
 	"testing"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
@@ -121,7 +122,7 @@ func TestMasterRPCEmpty(t *testing.T) {
 	}
 
 	mmEmpty := NewMaster([]string{})
-	ServRPC(mmEmpty, "localhost:4001")
+	ServeRPC(mmEmpty, "localhost:4001")
 	mEmpty := NewConn("localhost:4001")
 
 	var err error
@@ -180,7 +181,7 @@ func TestMasterRPCOne(t *testing.T) {
 	}
 
 	mmOne := NewMaster([]string{"s1"})
-	ServRPC(mmOne, "localhost:4002")
+	ServeRPC(mmOne, "localhost:4002")
 	mOne := NewConn("localhost:4002")
 
 	var err error
@@ -237,4 +238,187 @@ func TestMasterRPCOne(t *testing.T) {
 	af(fb.Assignments[0].Replicas[0] == "s1", "one master have only one replicas to lookup")
 	af(len(fb.Assignments[1].Replicas) == 1, "one master have one replicas to lookup")
 	af(fb.Assignments[1].Replicas[0] == "s1", "one master have only one replicas to lookup")
+}
+
+func TestMaster_Create(t *testing.T) {
+	af := func(cond bool, msg string) {
+		test.AF(t, cond, msg)
+	}
+
+	verifyAssignments := func(m *Master, request structure.FileCreateReq, clock int, assignments []structure.BlockAssign) {
+		for i := range assignments {
+			blockID := fmt.Sprintf("%s%d", request.Fname, i)
+			af(blockID == assignments[i].BlockID, fmt.Sprintf("Expected block name %q, found %q", blockID, assignments[0].BlockID))
+
+			for _, replica := range assignments[i].Replicas {
+				expectedReplica := m.storages[clock].Addr
+				af(expectedReplica == replica, fmt.Sprintf("Expected replica %q, found %q", expectedReplica, replica))
+				clock = (clock + 1) % len(m.storages)
+			}
+		}
+	}
+
+	var assignments []structure.BlockAssign
+	var request structure.FileCreateReq
+	var err error
+	var fName string
+	var clock int
+	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"})
+
+	// Requested RFactor is too large
+	fName = "large-RFactor"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: 257}
+	err = m.Create(&request, &assignments)
+	af(err != nil, "Master should not accept RFactor > 257")
+
+	// File with same name already exists
+	fName = "duplicate"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: 1}
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+
+	err = m.Create(&request, &assignments)
+	af(err != nil, "Master should not create duplicate file names")
+
+	// Create empty file with 1 replica
+	fName = "empty"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 0, Rfactor: 1}
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+	af(len(assignments) == 0, "Empty file should have 0 blocks")
+
+	// Create file with less than one block of data with 1 replica
+	fName = "less-than-one-block"
+	request = structure.FileCreateReq{Fname: fName, Fsize: gifts.GiftsBlockSize - 1, Rfactor: 1}
+	clock = m.createClockHand
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+	af(len(assignments) == 1, fmt.Sprintf("Expected 1 blocks, found %d", len(assignments)))
+	verifyAssignments(m, request, clock, assignments)
+
+	// Create file with exactly one block of data with 1 replica
+	fName = "one-block"
+	request = structure.FileCreateReq{Fname: fName, Fsize: gifts.GiftsBlockSize, Rfactor: 1}
+	clock = m.createClockHand
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+	af(len(assignments) == 1, fmt.Sprintf("Expected 1 blocks, found %d", len(assignments)))
+	verifyAssignments(m, request, clock, assignments)
+
+	// Create file with more than one block of data with 1 replica
+	fName = "more-than-one-block"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 3*gifts.GiftsBlockSize + 1, Rfactor: 1}
+	clock = m.createClockHand
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+	af(len(assignments) == 4, fmt.Sprintf("Expected 4 blocks, found %d", len(assignments)))
+	verifyAssignments(m, request, clock, assignments)
+
+	// Create empty file with multiple replicas
+	fName = "empty-replicate"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 0, Rfactor: 3}
+	clock = m.createClockHand
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+	af(len(assignments) == 0, "Empty file should have 0 blocks")
+	verifyAssignments(m, request, clock, assignments)
+
+	// Create file with more than one block of data with multiple replicas
+	fName = "more-than-one-block-replicate"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 3*gifts.GiftsBlockSize + 1, Rfactor: 2}
+	clock = m.createClockHand
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+	af(len(assignments) == 4, fmt.Sprintf("Expected 4 blocks, found %d", len(assignments)))
+	verifyAssignments(m, request, clock, assignments)
+}
+
+func TestMaster_Lookup(t *testing.T) {
+	af := func(cond bool, msg string) {
+		test.AF(t, cond, msg)
+	}
+
+	verifyAssignments := func(m *Master, request structure.FileCreateReq, assignments []structure.BlockAssign) {
+		for i := range assignments {
+			blockID := fmt.Sprintf("%s%d", request.Fname, i)
+			af(blockID == assignments[i].BlockID, fmt.Sprintf("Expected block name %q, found %q", blockID, assignments[0].BlockID))
+
+			for _, replica := range assignments[i].Replicas {
+				found := false
+				for _, storage := range m.storages {
+					if storage.Addr == replica {
+						found = true
+						break
+					}
+				}
+
+				af(found, fmt.Sprintf("Invalid replica %q", replica))
+			}
+		}
+	}
+
+	var err error
+	var fName string
+	var request structure.FileCreateReq
+	var assignments []structure.BlockAssign
+	var fb *structure.FileBlocks
+	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"})
+
+	// File doesn't exist
+	err = m.Lookup("doesn't exist", nil)
+	af(err != nil, "Looking up a non-existant file should fail")
+
+	// Empty file
+	fName = "empty"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 0, Rfactor: 1}
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+
+	err = m.Lookup(fName, &fb)
+	af(fb.Fsize == 0, "Empty file should have 0 bytes")
+	af(len(fb.Assignments) == 0, "Empty file should have 0 blocks")
+
+	// File with one block and one replica
+	fName = "one-block"
+	request = structure.FileCreateReq{Fname: fName, Fsize: gifts.GiftsBlockSize - 1, Rfactor: 1}
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+
+	err = m.Lookup(fName, &fb)
+	af(request.Fsize == fb.Fsize, fmt.Sprintf("Expected %d bytes, found %d", request.Fsize, fb.Fsize))
+	af(len(fb.Assignments) == 1, fmt.Sprintf("Expected 1 block, found %d", len(fb.Assignments)))
+	verifyAssignments(m, request, assignments)
+
+	// File with multiple blocks and one replica
+	fName = "multiple-blocks"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 3*gifts.GiftsBlockSize + 1, Rfactor: 1}
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+
+	err = m.Lookup(fName, &fb)
+	af(request.Fsize == fb.Fsize, fmt.Sprintf("Expected %d bytes, found %d", request.Fsize, fb.Fsize))
+	af(len(fb.Assignments) == 4, fmt.Sprintf("Expected 4 blocks, found %d", len(fb.Assignments)))
+	verifyAssignments(m, request, assignments)
+
+	// File with one block and multiple replicas
+	fName = "one-block-replicate"
+	request = structure.FileCreateReq{Fname: fName, Fsize: gifts.GiftsBlockSize - 1, Rfactor: 2}
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+
+	err = m.Lookup(fName, &fb)
+	af(request.Fsize == fb.Fsize, fmt.Sprintf("Expected %d bytes, found %d", request.Fsize, fb.Fsize))
+	af(len(fb.Assignments) == 1, fmt.Sprintf("Expected 1 block, found %d", len(fb.Assignments)))
+	verifyAssignments(m, request, assignments)
+
+	// File with multiple blocks and multiple replicas
+	fName = "multiple-blocks-replicate"
+	request = structure.FileCreateReq{Fname: fName, Fsize: 3*gifts.GiftsBlockSize + 1, Rfactor: 1}
+	err = m.Create(&request, &assignments)
+	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
+
+	err = m.Lookup(fName, &fb)
+	af(request.Fsize == fb.Fsize, fmt.Sprintf("Expected %d bytes, found %d", request.Fsize, fb.Fsize))
+	af(len(fb.Assignments) == 4, fmt.Sprintf("Expected 4 blocks, found %d", len(fb.Assignments)))
+	verifyAssignments(m, request, assignments)
 }

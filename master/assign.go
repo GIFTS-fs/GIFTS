@@ -3,7 +3,6 @@ package master
 import (
 	"math/rand"
 	"strconv"
-	"time"
 
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
@@ -22,10 +21,10 @@ func (m *Master) nextStorage() (s *storage.RPCStorage) {
 	return
 }
 
-// makeAssignment for the request, assume all argumetns are valid to the best knowledge of the caller
+// makeAssignment for the request, assume all arguments are valid to the best knowledge of the caller
 func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assignments []structure.BlockAssign) {
 	// WARN: SHOULD NOT HAVE TYPE CASTING,
-	// its safety is based on the MaxRfactor is not larger than the overflow number
+	// its safety is based on the MaxRFactor is not larger than the overflow number
 	nReplica := int(req.Rfactor)
 	if nReplica > len(m.storages) {
 		nReplica = len(m.storages)
@@ -66,8 +65,8 @@ func (m *Master) pickReadReplica(fm *fMeta) (assignment []structure.BlockAssign)
 			continue
 		}
 
-		// Policy 1: (badly) random pick one
-		pick := rand.New(rand.NewSource(int64(fm.fSize) ^ time.Now().UnixNano())).Intn(nReplica)
+		// Policy 1: (badly) randomly pick one
+		pick := rand.Intn(nReplica)
 		assignment[i].Replicas = []string{completeAssignment.Replicas[pick]}
 
 		// Policy 2: LRU
