@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	// MaxRfactor limits the value of rfactor
+	// MaxRfactor limits the value of rfactor,
+	// mere a magic number to prevent uint overlows int
 	MaxRfactor = 256
 
 	// rebalanceIntervalSec
@@ -30,8 +31,8 @@ type Master struct {
 	createClockHand int
 }
 
-// NewMaster creates a new GIFTS Master.  It requires a list of addresses of
-// all Storage nodes.
+// NewMaster creates a new GIFTS Master.
+// It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string) *Master {
 	m := Master{
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
@@ -48,6 +49,9 @@ func NewMaster(storageAddr []string) *Master {
 	return &m
 }
 
+// background tasks of master:
+//
+// 1. peridically attempt to rebalnce load across storage
 func (m *Master) background() {
 	// TODO: make the interval dynamic?
 	tickerRebalance := time.NewTicker(time.Second * rebalanceIntervalSec)
@@ -61,8 +65,8 @@ func (m *Master) background() {
 	}
 }
 
-// ServeRPC makes the Master accessible via RPC at the specified IP address and
-// port.
+// ServeRPC makes the Master accessible via RPC
+// at the specified IP address and port.
 func ServeRPC(m *Master, addr string) (err error) {
 	server := rpc.NewServer()
 
@@ -79,8 +83,7 @@ func ServeRPC(m *Master, addr string) (err error) {
 	mux := http.NewServeMux()
 	mux.Handle(RPCPathMaster, server)
 
-	// Start Master's background task that periodically tries to rebalance the
-	// replicas amongst the Storage nodes.
+	// Start Master's background tasks
 	go m.background()
 
 	// Serve the Master at the specified IP address and port
@@ -93,17 +96,17 @@ func ServeRPC(m *Master, addr string) (err error) {
 func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.BlockAssign) error {
 	// File with the same name already exists
 	if m.fExist(req.Fname) {
-		msg := fmt.Sprintf("File %q already exists", req.Fname)
-		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
-		return fmt.Errorf(msg)
+		err := fmt.Errorf("File %q already exists", req.Fname)
+		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		return err
 	}
 
 	// Set some (arbitrary) limit on the maximum number of replicas, regardless
 	// of the number of Storage nodes.
 	if req.Rfactor > MaxRfactor {
-		msg := fmt.Sprintf("RFactor %v is too large (> %v)", req.Rfactor, MaxRfactor)
-		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
-		return fmt.Errorf(msg)
+		err := fmt.Errorf("RFactor %v is too large (> %v)", req.Rfactor, MaxRfactor)
+		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		return err
 	}
 
 	// Split the file into blocks
@@ -121,9 +124,9 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	// the IP addresses.  When we increase replication, we'll need to find an
 	// storage not already used.
 	if _, loaded := m.fCreate(req.Fname, fm); loaded {
-		msg := fmt.Sprintf("File %q already created", req.Fname)
-		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
-		return fmt.Errorf(msg)
+		err := fmt.Errorf("File %q already created", req.Fname)
+		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		return err
 	}
 
 	// Set the return value
@@ -140,9 +143,9 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 
 	// Check if the file exists
 	if !found {
-		msg := fmt.Sprintf("File %q not found", fName)
-		m.logger.Printf("Master.Lookup(%q) => %q", fName, msg)
-		return fmt.Errorf(msg)
+		err := fmt.Errorf("File %q not found", fName)
+		m.logger.Printf("Master.Lookup(%q) => %q", fName, err)
+		return err
 	}
 
 	// Figure out which replicas the client should read from
