@@ -1,6 +1,6 @@
 package gifts
 
 const (
-	// GiftsBlockSize 4KB
-	GiftsBlockSize = 4096
+	// GiftsBlockSize 1MB
+	GiftsBlockSize = 1048576
 )
