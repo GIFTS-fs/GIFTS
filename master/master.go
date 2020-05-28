@@ -88,13 +88,6 @@ func ServeRPC(m *Master, addr string) (err error) {
 
 // Create a file: assign replicas for the clients to write
 func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.BlockAssign) error {
-	// RFactor must be at least 1
-	if req.Rfactor < 1 {
-		msg := "RFactor must be at least 1"
-		m.logger.Printf("Master.Create(%v) => %q", *req, msg)
-		return fmt.Errorf(msg)
-	}
-
 	// File with the same name already exists
 	if m.fExist(req.Fname) {
 		msg := fmt.Sprintf("File %q already exists", req.Fname)
@@ -138,7 +131,6 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 }
 
 // Lookup a file: find mapping for a file
-// DLAD: why is the return value a pointer to a pointer?
 func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	// Attempt to look up where the file is stored
 	fm, found := m.fLookup(fName)
