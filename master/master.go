@@ -10,6 +10,7 @@ import (
 	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/algorithm"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
@@ -29,6 +30,9 @@ type Master struct {
 	fMap            sync.Map
 	storages        []*storage.RPCStorage
 	createClockHand int
+
+	trafficMedian *algorithm.RunningMedian
+	trafficLock   sync.Mutex
 }
 
 // NewMaster creates a new GIFTS Master.
@@ -37,6 +41,7 @@ func NewMaster(storageAddr []string) *Master {
 	m := Master{
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		createClockHand: 0,
+		trafficMedian:   algorithm.NewRunningMedian(),
 	}
 
 	// Store a connection to every Storage node
@@ -109,21 +114,11 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 		return err
 	}
 
-	// Split the file into blocks
-	nBlocks := gifts.NBlocks(req.Fsize)
-	fm := &fMeta{
-		fSize:       req.Fsize,
-		nBlocks:     nBlocks,
-		rFactor:     req.Rfactor,
-		assignments: m.makeAssignment(req, nBlocks),
-		nRead:       0,
-	}
+	var fm *fMeta
+	var loaded bool
 
-	// Store the block-to-Storage-node mapping
-	// DLAD: The master might need to store indexes into m.storages instead of
-	// the IP addresses.  When we increase replication, we'll need to find an
-	// storage not already used.
-	if _, loaded := m.fCreate(req.Fname, fm); loaded {
+	// Create one and only one fMeta for each file
+	if fm, loaded = m.fCreate(req.Fname, req); loaded {
 		err := fmt.Errorf("File %q already created", req.Fname)
 		m.logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
@@ -155,9 +150,17 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	}
 
 	// Keep track of the number of times this file has been read
-	fm.trafficLock.Lock()
-	defer fm.trafficLock.Unlock()
-	fm.nRead++
+	// don't let this block the critical path
+	go func() {
+		// TODO: shall remove the lock since we don't care the exact data?
+		fm.trafficLock.Lock()
+		prev, curr := fm.trafficCounter.GetRaw(), fm.trafficCounter.Hit()
+		fm.trafficLock.Unlock()
+
+		m.trafficLock.Lock()
+		m.trafficMedian.Update(prev, curr)
+		m.trafficLock.Unlock()
+	}()
 
 	m.logger.Printf("Master.Lookup(%q) => success", fName)
 	return nil

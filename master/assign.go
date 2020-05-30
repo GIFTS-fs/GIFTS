@@ -22,10 +22,10 @@ func (m *Master) nextStorage() (s *storage.RPCStorage) {
 }
 
 // makeAssignment for the request, assume all arguments are valid to the best knowledge of the caller
-func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assignments []structure.BlockAssign) {
+func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assignments []structure.BlockAssign, nReplica int) {
 	// WARN: SHOULD NOT HAVE TYPE CASTING,
 	// its safety is based on the MaxRFactor is not larger than the overflow number
-	nReplica := int(req.Rfactor)
+	nReplica = int(req.Rfactor)
 	if nReplica > len(m.storages) {
 		nReplica = len(m.storages)
 	}

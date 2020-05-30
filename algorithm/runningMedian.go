@@ -2,6 +2,9 @@ package algorithm
 
 import "container/heap"
 
+// TODO: make the whole class concurrency safe without locks
+// namely, remove strict requirements on size, if 0 then quit gracefully
+
 // RunningMedian provides median for a data stream
 type RunningMedian struct {
 	size   uint64
