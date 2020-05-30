@@ -82,7 +82,7 @@ type BasicFloat64Heap struct {
 // Top of the int data
 func (h BasicFloat64Heap) Top() float64 { return h.BasicHeap.Top().(float64) }
 
-// MinIntHeap based on BasicIntHeap
+// MinFloat64Heap based on BasicIntHeap
 type MinFloat64Heap struct {
 	BasicFloat64Heap
 }
@@ -90,7 +90,7 @@ type MinFloat64Heap struct {
 // Less for min heap
 func (h MinFloat64Heap) Less(i, j int) bool { return h.data[i].(float64) < h.data[j].(float64) }
 
-// MaxIntHeap based on BasicIntHeap
+// MaxFloat64Heap based on BasicIntHeap
 type MaxFloat64Heap struct {
 	BasicFloat64Heap
 }
