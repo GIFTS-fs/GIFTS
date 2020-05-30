@@ -2,10 +2,12 @@ package test
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/GIFTS-fs/GIFTS/client"
+	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/master"
 	"github.com/GIFTS-fs/GIFTS/storage"
 )
@@ -16,7 +18,9 @@ func TestIntergrationHelloWorld(t *testing.T) {
 	addrStorage2 := "localhost:22323"
 	addrStorages := []string{addrStorage1, addrStorage2}
 
-	m := master.NewMaster(addrStorages)
+	dir, _ := os.Getwd()
+	config.Load(dir + "/../config/config.json")
+	m := master.NewMaster(addrStorages, config.Get())
 	if master.ServeRPC(m, addrMaster) != nil {
 		t.Errorf("Failed to serv master %v", m)
 	}
@@ -31,7 +35,7 @@ func TestIntergrationHelloWorld(t *testing.T) {
 		t.Errorf("Failed to serv storage %v", s2)
 	}
 
-	c := client.NewClient([]string{addrMaster})
+	c := client.NewClient([]string{addrMaster}, config.Get())
 
 	f1Name := "helloWorld"
 	f1Rfactor := uint(2)

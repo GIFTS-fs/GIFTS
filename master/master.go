@@ -10,6 +10,7 @@ import (
 	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
@@ -26,6 +27,7 @@ const (
 // Master is the master of GIFTS
 type Master struct {
 	logger          *gifts.Logger
+	config          *config.Config
 	fMap            sync.Map
 	storages        []*storage.RPCStorage
 	createClockHand int
@@ -33,10 +35,11 @@ type Master struct {
 
 // NewMaster creates a new GIFTS Master.
 // It requires a list of addresses of Storage nodes.
-func NewMaster(storageAddr []string) *Master {
+func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		createClockHand: 0,
+		config:          config,
 	}
 
 	// Store a connection to every Storage node
@@ -51,7 +54,7 @@ func NewMaster(storageAddr []string) *Master {
 
 // background tasks of master:
 //
-// 1. peridically attempt to rebalnce load across storage
+// 1. periodically attempt to rebalance load across storage
 func (m *Master) background() {
 	// TODO: make the interval dynamic?
 	tickerRebalance := time.NewTicker(time.Second * rebalanceIntervalSec)
@@ -110,7 +113,7 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	}
 
 	// Split the file into blocks
-	nBlocks := gifts.NBlocks(req.Fsize)
+	nBlocks := gifts.NBlocks(m.config.GiftsBlockSize, req.Fsize)
 	fm := &fMeta{
 		fSize:       req.Fsize,
 		nBlocks:     nBlocks,
@@ -120,7 +123,7 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	}
 
 	// Store the block-to-Storage-node mapping
-	// DLAD: The master might need to store indexes into m.storages instead of
+	// TODO: The master might need to store indexes into m.storages instead of
 	// the IP addresses.  When we increase replication, we'll need to find an
 	// storage not already used.
 	if _, loaded := m.fCreate(req.Fname, fm); loaded {

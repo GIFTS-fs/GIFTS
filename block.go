@@ -6,9 +6,9 @@ package gifts
 type Block []byte
 
 // NBlocks calculates the number of GIFTS blocks for given file size
-func NBlocks(fsize int) (n int) {
-	n = fsize / GiftsBlockSize
-	if n*GiftsBlockSize != fsize {
+func NBlocks(blockSize, fsize int) (n int) {
+	n = fsize / blockSize
+	if n*blockSize != fsize {
 		n++
 	}
 	return

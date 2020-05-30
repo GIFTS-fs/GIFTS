@@ -2,9 +2,10 @@ package master
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
-	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
 )
@@ -14,7 +15,9 @@ func TestMasterLocalEmpty(t *testing.T) {
 		test.AF(t, cond, msg)
 	}
 
-	mEmpty := NewMaster([]string{})
+	dir, _ := os.Getwd()
+	config.Load(dir + "/../config/config.json")
+	mEmpty := NewMaster([]string{}, config.Get())
 
 	var a []structure.BlockAssign
 	var fb *structure.FileBlocks
@@ -42,7 +45,7 @@ func TestMasterLocalEmpty(t *testing.T) {
 	af(fb.Assignments[0].BlockID == a[0].BlockID, "lookup f1 should have same blockID")
 	af(len(fb.Assignments[0].Replicas) == 0, "empty master have no replicas to lookup")
 
-	r2 := structure.FileCreateReq{Fname: "f2", Fsize: gifts.GiftsBlockSize + 1, Rfactor: 1}
+	r2 := structure.FileCreateReq{Fname: "f2", Fsize: mEmpty.config.GiftsBlockSize + 1, Rfactor: 1}
 
 	af(mEmpty.Create(&r2, &a) == nil, "Create 2 block file failed")
 	af(len(a) == 2, "blocksize+1 byte should have 2 block")
@@ -52,7 +55,7 @@ func TestMasterLocalEmpty(t *testing.T) {
 	af(len(a[1].Replicas) == 0, "empty master have no replicas to assign")
 
 	af(mEmpty.Lookup("f2", &fb) == nil, "Lookup f2 failed")
-	af(fb.Fsize == gifts.GiftsBlockSize+1, "lookup f2 should have blocksize+1 byte in size")
+	af(fb.Fsize == mEmpty.config.GiftsBlockSize+1, "lookup f2 should have blocksize+1 byte in size")
 	af(len(fb.Assignments) == 2, "lookup f2 should have 2 block assignment")
 	af(fb.Assignments[0].BlockID == a[0].BlockID, "lookup f2 should have same blockID")
 	af(fb.Assignments[1].BlockID == a[1].BlockID, "lookup f2 should have same blockID")
@@ -65,7 +68,9 @@ func TestMasterLocalOne(t *testing.T) {
 		test.AF(t, cond, msg)
 	}
 
-	mOne := NewMaster([]string{"s1"})
+	dir, _ := os.Getwd()
+	config.Load(dir + "/../config/config.json")
+	mOne := NewMaster([]string{"s1"}, config.Get())
 
 	var a []structure.BlockAssign
 	var fb *structure.FileBlocks
@@ -94,7 +99,7 @@ func TestMasterLocalOne(t *testing.T) {
 	af(len(fb.Assignments[0].Replicas) == 1, "one master have one replica to lookup")
 	af(fb.Assignments[0].Replicas[0] == "s1", "one master have only one replica to lookup")
 
-	r2 := structure.FileCreateReq{Fname: "f2", Fsize: gifts.GiftsBlockSize + 1, Rfactor: 1}
+	r2 := structure.FileCreateReq{Fname: "f2", Fsize: mOne.config.GiftsBlockSize + 1, Rfactor: 1}
 
 	af(mOne.Create(&r2, &a) == nil, "Create 2 block file failed")
 	af(len(a) == 2, "blocksize+1 byte should have 2 block")
@@ -106,7 +111,7 @@ func TestMasterLocalOne(t *testing.T) {
 	af(a[1].Replicas[0] == "s1", "one master have only one replica to assign")
 
 	af(mOne.Lookup("f2", &fb) == nil, "Lookup f2 failed")
-	af(fb.Fsize == gifts.GiftsBlockSize+1, "lookup f2 should have blocksize+1 byte in size")
+	af(fb.Fsize == mOne.config.GiftsBlockSize+1, "lookup f2 should have blocksize+1 byte in size")
 	af(len(fb.Assignments) == 2, "lookup f2 should have 2 block assignment")
 	af(fb.Assignments[0].BlockID == a[0].BlockID, "lookup f2 should have same blockID")
 	af(fb.Assignments[1].BlockID == a[1].BlockID, "lookup f2 should have same blockID")
@@ -121,7 +126,9 @@ func TestMasterRPCEmpty(t *testing.T) {
 		test.AF(t, cond, msg)
 	}
 
-	mmEmpty := NewMaster([]string{})
+	dir, _ := os.Getwd()
+	config.Load(dir + "/../config/config.json")
+	mmEmpty := NewMaster([]string{}, config.Get())
 	ServeRPC(mmEmpty, "localhost:4001")
 	mEmpty := NewConn("localhost:4001")
 
@@ -155,7 +162,7 @@ func TestMasterRPCEmpty(t *testing.T) {
 	af(fb.Assignments[0].BlockID == a[0].BlockID, "lookup f1 should have same blockID")
 	af(len(fb.Assignments[0].Replicas) == 0, "empty master have no replicas to lookup")
 
-	r2 := structure.FileCreateReq{Fname: "f2", Fsize: gifts.GiftsBlockSize + 1, Rfactor: 1}
+	r2 := structure.FileCreateReq{Fname: "f2", Fsize: mmEmpty.config.GiftsBlockSize + 1, Rfactor: 1}
 
 	a, err = mEmpty.Create(r2.Fname, r2.Fsize, r2.Rfactor)
 	af(err == nil, "Create 2 block file failed")
@@ -167,7 +174,7 @@ func TestMasterRPCEmpty(t *testing.T) {
 
 	fb, err = mEmpty.Lookup("f2")
 	af(err == nil, "Lookup f2 failed")
-	af(fb.Fsize == gifts.GiftsBlockSize+1, "lookup f2 should have blocksize+1 byte in size")
+	af(fb.Fsize == mmEmpty.config.GiftsBlockSize+1, "lookup f2 should have blocksize+1 byte in size")
 	af(len(fb.Assignments) == 2, "lookup f2 should have 2 block assignment")
 	af(fb.Assignments[0].BlockID == a[0].BlockID, "lookup f2 should have same blockID")
 	af(fb.Assignments[1].BlockID == a[1].BlockID, "lookup f2 should have same blockID")
@@ -180,7 +187,9 @@ func TestMasterRPCOne(t *testing.T) {
 		test.AF(t, cond, msg)
 	}
 
-	mmOne := NewMaster([]string{"s1"})
+	dir, _ := os.Getwd()
+	config.Load(dir + "/../config/config.json")
+	mmOne := NewMaster([]string{"s1"}, config.Get())
 	ServeRPC(mmOne, "localhost:4002")
 	mOne := NewConn("localhost:4002")
 
@@ -216,7 +225,7 @@ func TestMasterRPCOne(t *testing.T) {
 	af(len(fb.Assignments[0].Replicas) == 1, "one master have one replica to lookup")
 	af(fb.Assignments[0].Replicas[0] == "s1", "one master have only one replica to lookup")
 
-	r2 := structure.FileCreateReq{Fname: "f2", Fsize: gifts.GiftsBlockSize + 1, Rfactor: 1}
+	r2 := structure.FileCreateReq{Fname: "f2", Fsize: mmOne.config.GiftsBlockSize + 1, Rfactor: 1}
 
 	a, err = mOne.Create(r2.Fname, r2.Fsize, r2.Rfactor)
 	af(err == nil, "Create 2 block file failed")
@@ -230,7 +239,7 @@ func TestMasterRPCOne(t *testing.T) {
 
 	fb, err = mOne.Lookup("f2")
 	af(err == nil, "Lookup f2 failed")
-	af(fb.Fsize == gifts.GiftsBlockSize+1, "lookup f2 should have blocksize+1 byte in size")
+	af(fb.Fsize == mmOne.config.GiftsBlockSize+1, "lookup f2 should have blocksize+1 byte in size")
 	af(len(fb.Assignments) == 2, "lookup f2 should have 2 block assignment")
 	af(fb.Assignments[0].BlockID == a[0].BlockID, "lookup f2 should have same blockID")
 	af(fb.Assignments[1].BlockID == a[1].BlockID, "lookup f2 should have same blockID")
@@ -263,7 +272,10 @@ func TestMaster_Create(t *testing.T) {
 	var err error
 	var fName string
 	var clock int
-	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"})
+
+	dir, _ := os.Getwd()
+	config.Load(dir + "/../config/config.json")
+	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"}, config.Get())
 
 	// Requested RFactor is too large
 	fName = "large-RFactor"
@@ -289,7 +301,7 @@ func TestMaster_Create(t *testing.T) {
 
 	// Create file with less than one block of data with 1 replica
 	fName = "less-than-one-block"
-	request = structure.FileCreateReq{Fname: fName, Fsize: gifts.GiftsBlockSize - 1, Rfactor: 1}
+	request = structure.FileCreateReq{Fname: fName, Fsize: m.config.GiftsBlockSize - 1, Rfactor: 1}
 	clock = m.createClockHand
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
@@ -298,7 +310,7 @@ func TestMaster_Create(t *testing.T) {
 
 	// Create file with exactly one block of data with 1 replica
 	fName = "one-block"
-	request = structure.FileCreateReq{Fname: fName, Fsize: gifts.GiftsBlockSize, Rfactor: 1}
+	request = structure.FileCreateReq{Fname: fName, Fsize: m.config.GiftsBlockSize, Rfactor: 1}
 	clock = m.createClockHand
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
@@ -307,7 +319,7 @@ func TestMaster_Create(t *testing.T) {
 
 	// Create file with more than one block of data with 1 replica
 	fName = "more-than-one-block"
-	request = structure.FileCreateReq{Fname: fName, Fsize: 3*gifts.GiftsBlockSize + 1, Rfactor: 1}
+	request = structure.FileCreateReq{Fname: fName, Fsize: 3*m.config.GiftsBlockSize + 1, Rfactor: 1}
 	clock = m.createClockHand
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
@@ -325,7 +337,7 @@ func TestMaster_Create(t *testing.T) {
 
 	// Create file with more than one block of data with multiple replicas
 	fName = "more-than-one-block-replicate"
-	request = structure.FileCreateReq{Fname: fName, Fsize: 3*gifts.GiftsBlockSize + 1, Rfactor: 2}
+	request = structure.FileCreateReq{Fname: fName, Fsize: 3*m.config.GiftsBlockSize + 1, Rfactor: 2}
 	clock = m.createClockHand
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
@@ -362,7 +374,10 @@ func TestMaster_Lookup(t *testing.T) {
 	var request structure.FileCreateReq
 	var assignments []structure.BlockAssign
 	var fb *structure.FileBlocks
-	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"})
+
+	dir, _ := os.Getwd()
+	config.Load(dir + "/../config/config.json")
+	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"}, config.Get())
 
 	// File doesn't exist
 	err = m.Lookup("doesn't exist", nil)
@@ -380,7 +395,7 @@ func TestMaster_Lookup(t *testing.T) {
 
 	// File with one block and one replica
 	fName = "one-block"
-	request = structure.FileCreateReq{Fname: fName, Fsize: gifts.GiftsBlockSize - 1, Rfactor: 1}
+	request = structure.FileCreateReq{Fname: fName, Fsize: m.config.GiftsBlockSize - 1, Rfactor: 1}
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 
@@ -391,7 +406,7 @@ func TestMaster_Lookup(t *testing.T) {
 
 	// File with multiple blocks and one replica
 	fName = "multiple-blocks"
-	request = structure.FileCreateReq{Fname: fName, Fsize: 3*gifts.GiftsBlockSize + 1, Rfactor: 1}
+	request = structure.FileCreateReq{Fname: fName, Fsize: 3*m.config.GiftsBlockSize + 1, Rfactor: 1}
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 
@@ -402,7 +417,7 @@ func TestMaster_Lookup(t *testing.T) {
 
 	// File with one block and multiple replicas
 	fName = "one-block-replicate"
-	request = structure.FileCreateReq{Fname: fName, Fsize: gifts.GiftsBlockSize - 1, Rfactor: 2}
+	request = structure.FileCreateReq{Fname: fName, Fsize: m.config.GiftsBlockSize - 1, Rfactor: 2}
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 
@@ -413,7 +428,7 @@ func TestMaster_Lookup(t *testing.T) {
 
 	// File with multiple blocks and multiple replicas
 	fName = "multiple-blocks-replicate"
-	request = structure.FileCreateReq{Fname: fName, Fsize: 3*gifts.GiftsBlockSize + 1, Rfactor: 1}
+	request = structure.FileCreateReq{Fname: fName, Fsize: 3*m.config.GiftsBlockSize + 1, Rfactor: 1}
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 
