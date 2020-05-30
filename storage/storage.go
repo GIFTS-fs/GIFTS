@@ -95,6 +95,32 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	return nil
 }
 
+// Migrate copies the specified block to the destination Storage node
+func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
+	// Load block
+	s.blocksLock.RLock()
+	block, found := s.blocks[kv.ID]
+	s.blocksLock.RUnlock()
+
+	// Check if ID exists
+	if !found {
+		msg := fmt.Sprintf("Block with ID %s does not exist", kv.ID)
+		s.logger.Printf("Storage.Migrate(%q, %q) => %q", kv.ID, kv.Dest, msg)
+		return fmt.Errorf(msg)
+	}
+
+	// Start an RPC session with the destination and copy the block
+	rs := NewRPCStorage(kv.Dest)
+	blockKV := structure.BlockKV{ID: kv.ID, Data: block}
+	if err := rs.Set(&blockKV); err != nil {
+		s.logger.Printf("Storage.Migrate(%q, %q) => %v", kv.ID, kv.Dest, err)
+		return err
+	}
+
+	s.logger.Printf("Storage.Migrate(%q, %q) => success", kv.ID, kv.Dest)
+	return nil
+}
+
 // Unset deletes the data associated with the block's ID
 func (s *Storage) Unset(id string, ignore *bool) error {
 	// Load block

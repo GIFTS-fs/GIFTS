@@ -126,3 +126,35 @@ func (s *RPCStorage) Unset(id string, ignore *bool) error {
 
 	return err
 }
+
+// Migrate copies the specified block to the destination Storage node
+func (s *RPCStorage) Migrate(kv *structure.MigrateKV) error {
+	var err error
+
+	// If the Call returns an error, try reconnecting to the server and making the call again
+	for try := 0; try < 2; try++ {
+		// Connect to the server
+		if s.conn == nil {
+			if err = s.connect(); err != nil {
+				break
+			}
+		}
+
+		// Perform the call
+		err = s.conn.Call("Storage.Migrate", kv, nil)
+		if err == nil {
+			break
+		} else if s.conn != nil {
+			s.conn.Close()
+			s.conn = nil
+		}
+	}
+
+	if err == nil {
+		s.logger.Printf("%q: RPCStorage.Migrate(%v) => success", s.Addr, kv)
+	} else {
+		s.logger.Printf("%q: RPCStorage.Migrate(%v) => %v", s.Addr, kv, err)
+	}
+
+	return err
+}
