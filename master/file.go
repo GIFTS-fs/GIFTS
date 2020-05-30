@@ -25,8 +25,8 @@ type fMeta struct {
 }
 
 // fCreate tries to create a new fMeta for fname, return loaded=true if already exists.
-// either because a concurrent create or already exists. Note loaded=true does not mean
-// the other thread finished the initialization
+// either because a concurrent create or already exists.
+// WARN: loaded=true does not mean the other thread finished the initialization
 func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (fm *fMeta, loaded bool) {
 	fi, loaded := m.fMap.LoadOrStore(fname, &fMeta{})
 

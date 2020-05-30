@@ -28,6 +28,7 @@ const (
 type Master struct {
 	logger          *gifts.Logger
 	fMap            sync.Map
+	nStorage        int // number of storage alive, for 1st phase, it's const
 	storages        []*storage.RPCStorage
 	createClockHand int
 
@@ -40,6 +41,7 @@ type Master struct {
 func NewMaster(storageAddr []string) *Master {
 	m := Master{
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
+		nStorage:        len(storageAddr),
 		createClockHand: 0,
 		trafficMedian:   algorithm.NewRunningMedian(),
 	}
