@@ -3,6 +3,7 @@ package master
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/GIFTS-fs/GIFTS/config"
@@ -10,13 +11,18 @@ import (
 	"github.com/GIFTS-fs/GIFTS/test"
 )
 
+func TestMain(m *testing.M) {
+	dir, _ := os.Getwd()
+	config.LoadGet(filepath.Join(dir, "..", "config", "config.json"))
+	// call flag.Parse() here if TestMain uses flags
+	os.Exit(m.Run())
+}
+
 func TestMasterLocalEmpty(t *testing.T) {
 	af := func(cond bool, msg string) {
 		test.AF(t, cond, msg)
 	}
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	mEmpty := NewMaster([]string{}, config.Get())
 
 	var a []structure.BlockAssign
@@ -68,8 +74,6 @@ func TestMasterLocalOne(t *testing.T) {
 		test.AF(t, cond, msg)
 	}
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	mOne := NewMaster([]string{"s1"}, config.Get())
 
 	var a []structure.BlockAssign
@@ -126,8 +130,6 @@ func TestMasterRPCEmpty(t *testing.T) {
 		test.AF(t, cond, msg)
 	}
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	mmEmpty := NewMaster([]string{}, config.Get())
 	ServeRPC(mmEmpty, "localhost:4001")
 	mEmpty := NewConn("localhost:4001")
@@ -187,8 +189,6 @@ func TestMasterRPCOne(t *testing.T) {
 		test.AF(t, cond, msg)
 	}
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	mmOne := NewMaster([]string{"s1"}, config.Get())
 	ServeRPC(mmOne, "localhost:4002")
 	mOne := NewConn("localhost:4002")
@@ -273,8 +273,6 @@ func TestMaster_Create(t *testing.T) {
 	var fName string
 	var clock int
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"}, config.Get())
 
 	// Requested RFactor is too large
@@ -375,8 +373,6 @@ func TestMaster_Lookup(t *testing.T) {
 	var assignments []structure.BlockAssign
 	var fb *structure.FileBlocks
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"}, config.Get())
 
 	// File doesn't exist

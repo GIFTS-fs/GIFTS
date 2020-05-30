@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -12,14 +13,19 @@ import (
 	"github.com/GIFTS-fs/GIFTS/storage"
 )
 
+func TestMain(m *testing.M) {
+	dir, _ := os.Getwd()
+	config.LoadGet(filepath.Join(dir, "..", "config", "config.json"))
+	// call flag.Parse() here if TestMain uses flags
+	os.Exit(m.Run())
+}
+
 func TestIntergrationHelloWorld(t *testing.T) {
 	addrMaster := "localhost:22321"
 	addrStorage1 := "localhost:22322"
 	addrStorage2 := "localhost:22323"
 	addrStorages := []string{addrStorage1, addrStorage2}
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	m := master.NewMaster(addrStorages, config.Get())
 	if master.ServeRPC(m, addrMaster) != nil {
 		t.Errorf("Failed to serv master %v", m)

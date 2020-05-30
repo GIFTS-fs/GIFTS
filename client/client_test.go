@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,11 +14,16 @@ import (
 	"github.com/GIFTS-fs/GIFTS/test"
 )
 
+func TestMain(m *testing.M) {
+	dir, _ := os.Getwd()
+	config.LoadGet(filepath.Join(dir, "..", "config", "config.json"))
+	// call flag.Parse() here if TestMain uses flags
+	os.Exit(m.Run())
+}
+
 func TestClient_Store(t *testing.T) {
 	t.Parallel()
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	c := NewClient([]string{"master"}, config.Get())
 
 	addr1 := "localhost:3003"
@@ -136,8 +142,6 @@ func TestClient_Store(t *testing.T) {
 func TestClient_Read(t *testing.T) {
 	t.Parallel()
 
-	dir, _ := os.Getwd()
-	config.Load(dir + "/../config/config.json")
 	c := NewClient([]string{"master"}, config.Get())
 
 	addr1 := "localhost:3005"
