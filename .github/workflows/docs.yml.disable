@@ -3,8 +3,6 @@ name: Docs
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 jobs:
   build:
@@ -39,3 +37,4 @@ jobs:
           git add .
           git commit -m "Add docs" 
           git push "https://$GITHUB_ACTOR:${{ secrets.API_TOKEN_GITHUB }}@github.com/GIFTS-fs/Docs.git" master -f
+          # WARN: the API_TOKEN_GITHUB must be the personal access token of GITHUB_ACTOR, which won't work since this is an org
