@@ -11,7 +11,9 @@ import "container/heap"
 // Invariant:
 //
 // * {x \in lower | x <= median}
+//
 // * {x \in higher and x != higher.Top() | x > median }
+//
 // when N is odd, median is .5*(higher.Top() + lower.Top())
 type RunningMedian struct {
 	size   uint64
@@ -20,7 +22,9 @@ type RunningMedian struct {
 	lower  *MaxFloat64Heap
 	higher *MinFloat64Heap
 
-	del map[float64]int // lazy delete: buffer of the numbers to delete
+	delLower  int
+	delHigher int
+	del       map[float64]int // lazy delete: buffer of the numbers to delete
 }
 
 // NewRunningMedian constructs a RunningMedian for the given less function
@@ -39,9 +43,7 @@ func NewRunningMedian() *RunningMedian {
 
 // calculate updates the median, assuming there is at least one data
 func (r *RunningMedian) calculate() {
-	if r.size == 0 {
-		r.median = 0
-	} else if r.size&1 == 1 {
+	if r.size&1 == 1 {
 		r.median = r.lower.Top()
 	} else {
 		r.median = 0.5 * (r.lower.Top() + r.higher.Top())
@@ -53,31 +55,39 @@ func (r *RunningMedian) Median() float64 {
 	return r.median
 }
 
-// balance the lower and higher to ensure
-// the invariant: len(lower) >= 1 + len(higher).
+// balance the lower and higher.
 // clearly, adding 1 or deleting 1 has 1/2 chance to
-// lose balance, whereas adding 1 and deleting 1
-func (r *RunningMedian) balance() {
-	if r.lower.Len() > r.higher.Len()+1 {
+// lose balance
+func (r *RunningMedian) balance(balance int) {
+	// if balance < 0 && r.higher.Len() > 1 {
+	// 	heap.Push(r.lower, heap.Pop(r.higher))
+	// } else if balance > 0 && r.lower.Len() > 1 {
+	// 	heap.Push(r.higher, heap.Pop(r.lower))
+	// }
+	if balance > 0 && r.lower.Len()-r.delLower > r.higher.Len()-r.delHigher+1 {
 		heap.Push(r.higher, heap.Pop(r.lower))
-	} else if r.lower.Len() < r.higher.Len() {
+	} else if balance < 0 && r.lower.Len()-r.delLower < r.higher.Len()-r.delHigher {
 		heap.Push(r.lower, heap.Pop(r.higher))
 	}
 }
 
 // Add a new data, not concurrency safe
 func (r *RunningMedian) Add(add float64) {
+	balance := 0
+
 	// log N
 	if r.lower.Len() == 0 || add <= r.lower.Top() {
+		balance++
 		heap.Push(r.lower, add)
 	} else {
+		balance--
 		heap.Push(r.higher, add)
 	}
 
-	// 1 or log N, depends on the data shape
-	r.balance()
-
 	r.size++
+
+	r.balance(balance)
+
 	r.calculate()
 }
 
@@ -87,11 +97,18 @@ func (r *RunningMedian) delete() {
 	for r.lower.Len() > 0 && r.del[r.lower.Top()] > 0 {
 		r.del[r.lower.Top()]--
 		heap.Pop(r.lower)
+		r.delLower--
 	}
 
 	for r.higher.Len() > 0 && r.del[r.higher.Top()] > 0 {
 		r.del[r.higher.Top()]--
 		heap.Pop(r.higher)
+		r.delHigher--
+	}
+
+	// edge case: deleting until r.size == 1
+	if r.lower.Len() == 0 && r.higher.Len() == 1 {
+		heap.Push(r.lower, heap.Pop(r.higher))
 	}
 }
 
@@ -103,35 +120,38 @@ func (r *RunningMedian) Delete(del float64) {
 		return
 	}
 
+	balance := 0
 	// logN or buffer
 	if del <= r.lower.Top() {
+		balance--
 		if del == r.lower.Top() {
 			heap.Pop(r.lower)
 		} else {
+			r.delLower++
 			r.del[del]++
 		}
 		if r.size > 1 {
 			heap.Push(r.lower, heap.Pop(r.higher))
 		}
 	} else {
+		balance++
 		if del == r.higher.Top() {
 			heap.Pop(r.higher)
 		} else {
+			r.delHigher++
 			r.del[del]++
 		}
 		heap.Push(r.higher, heap.Pop(r.lower))
 	}
 
-	// TODO: which one to call first?
-	// this may hide a bug
+	r.size--
 
 	// 1 or LogN, depends on the data shape
-	r.balance()
+	r.balance(balance)
 	// amortized 1, deletes the ones buffered
 	r.delete()
 
 	// 1
-	r.size--
 	if r.size > 0 {
 		r.calculate()
 	} else {
@@ -155,6 +175,7 @@ func (r *RunningMedian) Update(del, add float64) {
 		if del == r.lower.Top() {
 			heap.Pop(r.lower)
 		} else {
+			r.delLower++
 			r.del[del]++
 		}
 	} else {
@@ -162,6 +183,7 @@ func (r *RunningMedian) Update(del, add float64) {
 		if del == r.higher.Top() {
 			heap.Pop(r.higher)
 		} else {
+			r.delHigher++
 			r.del[del]++
 		}
 	}
