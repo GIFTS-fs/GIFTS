@@ -13,7 +13,6 @@ import (
 func (m *Master) nextStorage() (s *storage.RPCStorage) {
 	m.createClockHand, s = m.createClockHand+1, m.storages[m.createClockHand]
 
-	// comparision is much cheaper than modular
 	if m.createClockHand == len(m.storages) {
 		m.createClockHand = 0
 	}

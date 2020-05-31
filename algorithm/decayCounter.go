@@ -23,6 +23,12 @@ func NewDecayCounter(halflife float64) *DecayCounter {
 	return dc
 }
 
+// disableDecay = setHalflife(inf),
+// the counter will behave like a normal counter
+func (dc *DecayCounter) disableDecay() {
+	dc.k = 0
+}
+
 func (dc *DecayCounter) setHalflife(hl float64) {
 	dc.k = math.Log(.5) / hl
 }
