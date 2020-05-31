@@ -8,12 +8,12 @@ subpackages=(algorithm bench client config generate master storage structure tes
 
 mkdir -p "${docs}"
 
-godoc -html . > "${docs}/GIFTS.html"
+godoc -html . > "${docs}/index.html"
 
 for package in "${subpackages[@]}"
 do
     echo "    Building ${package}"
-    godoc -html "./${package}" > "${docs}/${package}.html"
+    godoc -html "./${package}" > "${docs}/${package}/index.html"
 done
 
 echo "Finished building ${docs}"
