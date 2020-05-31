@@ -127,7 +127,7 @@ func TestStorage_Get(t *testing.T) {
 func TestStorage_Replicate(t *testing.T) {
 	t.Parallel()
 	s := NewStorage()
-	s.blocks["valid_id"] = []byte("Hello World")
+	s.blocks.Store("valid_id", gifts.Block("Hello World"))
 	var kv structure.ReplicateKV
 	var err error
 
