@@ -17,6 +17,9 @@ jobs:
           go-version: ^1.14
         id: go
 
+      - name: Install godoc
+        run: go get golang.org/x/tools/cmd/godoc
+
       - name: Checkout the code
         uses: actions/checkout@master
 
