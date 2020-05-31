@@ -118,6 +118,42 @@ func TestStorage_Get(t *testing.T) {
 	}
 }
 
+func TestStorage_Migrate(t *testing.T) {
+	t.Parallel()
+	s := NewStorage()
+	s.blocks["valid_id"] = []byte("Hello World")
+	var kv structure.MigrateKV
+	var err error
+
+	rs := NewStorage()
+	ServeRPC(rs, "localhost:3100")
+
+	// Invalid block ID
+	t.Logf("TestStorage_Migrate: Starting test #1")
+	kv.ID = "Invalid ID"
+	kv.Dest = "localhost:3100"
+	err = s.Migrate(&kv, nil)
+	test.AF(t, err != nil, "Invalid block ID should fail during migrate")
+
+	// Invalid destination
+	t.Logf("TestStorage_Migrate: Starting test #2")
+	kv.ID = "valid_id"
+	kv.Dest = "localhost:3101"
+	err = s.Migrate(&kv, nil)
+	test.AF(t, err != nil, "Invalid destination should fail during migrate")
+
+	// Valid ID and destination
+	t.Logf("TestStorage_Migrate: Starting test #2")
+	kv.ID = "valid_id"
+	kv.Dest = "localhost:3100"
+	err = s.Migrate(&kv, nil)
+	test.AF(t, err == nil, fmt.Sprintf("Storage.Migrate failed: %v", err))
+
+	expected := string(s.blocks["valid_id"])
+	actual := string(rs.blocks["valid_id"])
+	test.AF(t, expected == actual, fmt.Sprintf("Expected %q, found %q", expected, actual))
+}
+
 func TestStorage_Unset(t *testing.T) {
 	t.Parallel()
 

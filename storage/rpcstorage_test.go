@@ -122,6 +122,45 @@ func TestRPCStorage_Get(t *testing.T) {
 	}
 }
 
+func TestRPCStorage_Migrate(t *testing.T) {
+	t.Parallel()
+	var kv structure.MigrateKV
+	var err error
+
+	s1 := NewStorage()
+	s1.blocks["valid_id"] = []byte("Hello World")
+	ServeRPC(s1, "localhost:3200")
+	rs := NewRPCStorage("localhost:3200")
+
+	s2 := NewStorage()
+	ServeRPC(s2, "localhost:3201")
+
+	// Invalid block ID
+	t.Logf("TestStorage_Migrate: Starting test #1")
+	kv.ID = "Invalid ID"
+	kv.Dest = "localhost:3201"
+	err = rs.Migrate(&kv)
+	test.AF(t, err != nil, "Invalid block ID should fail during migrate")
+
+	// Invalid destination
+	t.Logf("TestStorage_Migrate: Starting test #2")
+	kv.ID = "valid_id"
+	kv.Dest = "localhost:3300"
+	err = rs.Migrate(&kv)
+	test.AF(t, err != nil, "Invalid destination should fail during migrate")
+
+	// Valid ID and destination
+	t.Logf("TestStorage_Migrate: Starting test #2")
+	kv.ID = "valid_id"
+	kv.Dest = "localhost:3201"
+	err = rs.Migrate(&kv)
+	test.AF(t, err == nil, fmt.Sprintf("Storage.Migrate failed: %v", err))
+
+	expected := string(s1.blocks["valid_id"])
+	actual := string(s2.blocks["valid_id"])
+	test.AF(t, expected == actual, fmt.Sprintf("Expected %q, found %q", expected, actual))
+}
+
 func TestRPCStorage_Unset(t *testing.T) {
 	t.Parallel()
 	s := NewStorage()

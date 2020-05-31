@@ -42,7 +42,7 @@ func Get() *Config {
 	return config
 }
 
-// LoadGet loads if not already loaded, it's concurrency safe and atomic
+// LoadGet loads if not already loaded, it's concurrency safe and ensures singleton
 func LoadGet(path string) (*Config, error) {
 	var err error
 	if config == nil {
