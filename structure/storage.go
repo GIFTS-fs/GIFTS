@@ -7,3 +7,9 @@ type BlockKV struct {
 	ID   string
 	Data gifts.Block
 }
+
+// MigrateKV is the request type of Storage.Migrate()
+type MigrateKV struct {
+	ID   string
+	Dest string
+}

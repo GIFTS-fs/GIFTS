@@ -2,19 +2,29 @@ package client
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
 )
 
+func TestMain(m *testing.M) {
+	dir, _ := os.Getwd()
+	config.LoadGet(filepath.Join(dir, "..", "config", "config.json"))
+	// call flag.Parse() here if TestMain uses flags
+	os.Exit(m.Run())
+}
+
 func TestClient_Store(t *testing.T) {
 	t.Parallel()
 
-	c := NewClient([]string{"master"})
+	c := NewClient([]string{"master"}, config.Get())
 
 	addr1 := "localhost:3003"
 	addr2 := "localhost:3004"
@@ -90,19 +100,19 @@ func TestClient_Store(t *testing.T) {
 		return []structure.BlockAssign{block1, block2}, nil
 	}
 
-	expected = strings.Repeat("test string", 1+(gifts.GiftsBlockSize/len("test string")))
+	expected = strings.Repeat("test string", 1+(c.config.GiftsBlockSize/len("test string")))
 	data = []byte(expected)
 	err = c.Store("filename_2", 1, data)
 	test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: \"%v\"", err))
 
 	err = s1.Get("filename_2_1", &ret)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
-	test.AF(t, len(ret) == gifts.GiftsBlockSize, fmt.Sprintf("Expected %d bytes but found %d", gifts.GiftsBlockSize, len(ret)))
-	test.AF(t, string(ret) == expected[:gifts.GiftsBlockSize], fmt.Sprintf("Expected %q but found %q", expected, ret))
+	test.AF(t, len(ret) == c.config.GiftsBlockSize, fmt.Sprintf("Expected %d bytes but found %d", c.config.GiftsBlockSize, len(ret)))
+	test.AF(t, string(ret) == expected[:c.config.GiftsBlockSize], fmt.Sprintf("Expected %q but found %q", expected, ret))
 
 	err = s1.Get("filename_2_2", &ret)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
-	test.AF(t, string(ret) == expected[gifts.GiftsBlockSize:], fmt.Sprintf("Expected %q but found %q", expected, ret))
+	test.AF(t, string(ret) == expected[c.config.GiftsBlockSize:], fmt.Sprintf("Expected %q but found %q", expected, ret))
 
 	// Valid call with more than one block of data and more than one replica
 	t.Logf("TestClient_Store: Starting test #8")
@@ -112,7 +122,7 @@ func TestClient_Store(t *testing.T) {
 		return []structure.BlockAssign{block1, block2}, nil
 	}
 
-	expected = strings.Repeat("test string 2", 1+(gifts.GiftsBlockSize/len("test string")))
+	expected = strings.Repeat("test string 2", 1+(c.config.GiftsBlockSize/len("test string")))
 	data = []byte(expected)
 	err = c.Store("filename_3", 1, data)
 	test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: \"%v\"", err))
@@ -120,19 +130,19 @@ func TestClient_Store(t *testing.T) {
 	for _, s := range []*storage.Storage{s1, s2} {
 		err = s.Get("filename_3_1", &ret)
 		test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
-		test.AF(t, len(ret) == gifts.GiftsBlockSize, fmt.Sprintf("Expected %d bytes but found %d", gifts.GiftsBlockSize, len(ret)))
-		test.AF(t, string(ret) == expected[:gifts.GiftsBlockSize], fmt.Sprintf("Expected %q but found %q", expected, ret))
+		test.AF(t, len(ret) == c.config.GiftsBlockSize, fmt.Sprintf("Expected %d bytes but found %d", c.config.GiftsBlockSize, len(ret)))
+		test.AF(t, string(ret) == expected[:c.config.GiftsBlockSize], fmt.Sprintf("Expected %q but found %q", expected, ret))
 
 		err = s.Get("filename_3_2", &ret)
 		test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
-		test.AF(t, string(ret) == expected[gifts.GiftsBlockSize:], fmt.Sprintf("Expected %q but found %q", expected, ret))
+		test.AF(t, string(ret) == expected[c.config.GiftsBlockSize:], fmt.Sprintf("Expected %q but found %q", expected, ret))
 	}
 }
 
 func TestClient_Read(t *testing.T) {
 	t.Parallel()
 
-	c := NewClient([]string{"master"})
+	c := NewClient([]string{"master"}, config.Get())
 
 	addr1 := "localhost:3005"
 	addr2 := "localhost:3006"
@@ -145,7 +155,7 @@ func TestClient_Read(t *testing.T) {
 
 	// File does not exist
 	t.Logf("TestClient_Read: Starting test #1")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		return nil, fmt.Errorf("%q does not exist", fname)
 	}
 	ret, err := c.Read("Invalid file")
@@ -153,7 +163,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Master fails
 	t.Logf("TestClient_Read: Starting test #2")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		return nil, fmt.Errorf("Master failed")
 	}
 	ret, err = c.Read("filename")
@@ -161,8 +171,8 @@ func TestClient_Read(t *testing.T) {
 
 	// Master returns incorrect number of assignments
 	t.Logf("TestClient_Read: Starting test #3")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
-		ret := structure.FileBlocks{Fsize: gifts.GiftsBlockSize * 2, Assignments: []structure.BlockAssign{}}
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
+		ret := structure.FileBlocks{Fsize: c.config.GiftsBlockSize * 2, Assignments: []structure.BlockAssign{}}
 		return &ret, nil
 	}
 	ret, err = c.Read("filename")
@@ -170,7 +180,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Master returns incorrect number of Storage nodes for each block
 	t.Logf("TestClient_Read: Starting test #4")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		block := structure.BlockAssign{BlockID: "id1", Replicas: []string{}}
 		ret := structure.FileBlocks{Fsize: 1, Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
@@ -180,7 +190,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Storage node fails
 	t.Logf("TestClient_Read: Starting test #5")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		block := structure.BlockAssign{BlockID: "id1", Replicas: []string{"r1"}}
 		ret := structure.FileBlocks{Fsize: 1, Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
@@ -190,7 +200,7 @@ func TestClient_Read(t *testing.T) {
 
 	// Empty file
 	t.Logf("TestClient_Read: Starting test #6")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		ret := structure.FileBlocks{Fsize: 0, Assignments: []structure.BlockAssign{}}
 		return &ret, nil
 	}
@@ -201,7 +211,7 @@ func TestClient_Read(t *testing.T) {
 	// File with one block
 	t.Logf("TestClient_Read: Starting test #7")
 	data = []byte("Hello World")
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		block := structure.BlockAssign{BlockID: "file_1_1", Replicas: []string{addr1}}
 		ret := structure.FileBlocks{Fsize: len(data), Assignments: []structure.BlockAssign{block}}
 		return &ret, nil
@@ -217,8 +227,8 @@ func TestClient_Read(t *testing.T) {
 
 	// File with multiple blocks
 	t.Logf("TestClient_Read: Starting test #8")
-	expected := strings.Repeat("test string", 1+(gifts.GiftsBlockSize/len("test string")))
-	c.master.Read = func(fname string) (*structure.FileBlocks, error) {
+	expected := strings.Repeat("test string", 1+(c.config.GiftsBlockSize/len("test string")))
+	c.master.Lookup = func(fname string) (*structure.FileBlocks, error) {
 		block1 := structure.BlockAssign{BlockID: "file_2_1", Replicas: []string{addr1}}
 		block2 := structure.BlockAssign{BlockID: "file_2_2", Replicas: []string{addr2}}
 		fsize := len(expected)
@@ -227,11 +237,11 @@ func TestClient_Read(t *testing.T) {
 		return &ret, nil
 	}
 
-	kv = structure.BlockKV{ID: "file_2_1", Data: gifts.Block(expected[:gifts.GiftsBlockSize])}
+	kv = structure.BlockKV{ID: "file_2_1", Data: gifts.Block(expected[:c.config.GiftsBlockSize])}
 	err = s1.Set(&kv, new(bool))
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 
-	kv = structure.BlockKV{ID: "file_2_2", Data: gifts.Block(expected[gifts.GiftsBlockSize:])}
+	kv = structure.BlockKV{ID: "file_2_2", Data: gifts.Block(expected[c.config.GiftsBlockSize:])}
 	err = s2.Set(&kv, new(bool))
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 

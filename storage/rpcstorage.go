@@ -9,19 +9,19 @@ import (
 
 // RPCStorage is a concurrency-safe key-value store accessible via RPC.
 type RPCStorage struct {
+	Addr   string
 	logger *gifts.Logger
-	addr   string
 	conn   *rpc.Client
 }
 
 // NewRPCStorage creates a client that allows you to access a raw Storage node
 // that is accessible via RPC at the specified address.
 func NewRPCStorage(addr string) *RPCStorage {
-	return &RPCStorage{addr: addr, logger: gifts.NewLogger("RPCStorage", addr, true)} // PRODUCTION: banish this
+	return &RPCStorage{Addr: addr, logger: gifts.NewLogger("RPCStorage", addr, true)} // PRODUCTION: banish this
 }
 
 func (s *RPCStorage) connect() (err error) {
-	s.conn, err = rpc.DialHTTPPath("tcp", s.addr, RPCPathStorage)
+	s.conn, err = rpc.DialHTTPPath("tcp", s.Addr, RPCPathStorage)
 	return
 }
 
@@ -49,9 +49,9 @@ func (s *RPCStorage) Set(kv *structure.BlockKV) error {
 	}
 
 	if err == nil {
-		s.logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => success", s.addr, kv.ID, len(kv.Data))
+		s.logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => success", s.Addr, kv.ID, len(kv.Data))
 	} else {
-		s.logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => %v", s.addr, kv.ID, len(kv.Data), err)
+		s.logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => %v", s.Addr, kv.ID, len(kv.Data), err)
 	}
 
 	return err
@@ -87,9 +87,41 @@ func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 	}
 
 	if err == nil {
-		s.logger.Printf("%q: RPCStorage.Get(%q) => %d bytes", s.addr, id, len(*ret))
+		s.logger.Printf("%q: RPCStorage.Get(%q) => %d bytes", s.Addr, id, len(*ret))
 	} else {
-		s.logger.Printf("%q: RPCStorage.Get(%q) => %v", s.addr, id, err)
+		s.logger.Printf("%q: RPCStorage.Get(%q) => %v", s.Addr, id, err)
+	}
+
+	return err
+}
+
+// Migrate copies the specified block to the destination Storage node
+func (s *RPCStorage) Migrate(kv *structure.MigrateKV) error {
+	var err error
+
+	// If the Call returns an error, try reconnecting to the server and making the call again
+	for try := 0; try < 2; try++ {
+		// Connect to the server
+		if s.conn == nil {
+			if err = s.connect(); err != nil {
+				break
+			}
+		}
+
+		// Perform the call
+		err = s.conn.Call("Storage.Migrate", kv, nil)
+		if err == nil {
+			break
+		} else if s.conn != nil {
+			s.conn.Close()
+			s.conn = nil
+		}
+	}
+
+	if err == nil {
+		s.logger.Printf("%q: RPCStorage.Migrate(%v) => success", s.Addr, kv)
+	} else {
+		s.logger.Printf("%q: RPCStorage.Migrate(%v) => %v", s.Addr, kv, err)
 	}
 
 	return err
@@ -119,9 +151,9 @@ func (s *RPCStorage) Unset(id string, ignore *bool) error {
 	}
 
 	if err == nil {
-		s.logger.Printf("%q: RPCStorage.Unset(%q) => success", s.addr, id)
+		s.logger.Printf("%q: RPCStorage.Unset(%q) => success", s.Addr, id)
 	} else {
-		s.logger.Printf("%q: RPCStorage.Unset(%q) => %v", s.addr, id, err)
+		s.logger.Printf("%q: RPCStorage.Unset(%q) => %v", s.Addr, id, err)
 	}
 
 	return err
