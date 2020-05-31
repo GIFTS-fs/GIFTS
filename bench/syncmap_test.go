@@ -11,10 +11,6 @@ import (
 	"github.com/GIFTS-fs/GIFTS/storage"
 )
 
-type stringStruct struct {
-	s string
-}
-
 func BenchmarkLoadLoadOrStore(b *testing.B) {
 	var m sync.Map
 	m.Store("addr", storage.NewRPCStorage("a"))

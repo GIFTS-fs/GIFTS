@@ -19,7 +19,7 @@ const (
 // Storage is a concurrency-safe key-value store.
 type Storage struct {
 	logger     *gifts.Logger // PRODUCTION: banish this
-	blocks     map[string]gifts.Block
+	blocks     sync.Map
 	blocksLock sync.RWMutex
 	rpc        sync.Map
 }
@@ -27,7 +27,6 @@ type Storage struct {
 // NewStorage creates a new storage node
 func NewStorage() *Storage {
 	return &Storage{
-		blocks: make(map[string]gifts.Block),
 		logger: gifts.NewLogger("Storage", "storage", true), // PRODUCTION: banish this
 	}
 }
@@ -63,10 +62,7 @@ func (s *Storage) Set(kv *structure.BlockKV, ignore *bool) error {
 	s.logger.Printf("Storage.Set(%q, %d bytes)", kv.ID, len(kv.Data))
 
 	// Store data into block
-	s.blocksLock.Lock()
-	s.blocks[kv.ID] = make([]byte, len(kv.Data))
-	copy(s.blocks[kv.ID], kv.Data)
-	s.blocksLock.Unlock()
+	s.blocks.Store(kv.ID, kv.Data)
 
 	return nil
 }
@@ -77,9 +73,7 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	*ret = make([]byte, 0)
 
 	// Load block
-	s.blocksLock.RLock()
-	block, found := s.blocks[id]
-	s.blocksLock.RUnlock()
+	value, found := s.blocks.Load(id)
 
 	// Check if ID exists
 	if !found {
@@ -89,6 +83,7 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	}
 
 	// Copy data
+	block := value.(gifts.Block)
 	*ret = make([]byte, len(block))
 	copy(*ret, block)
 
@@ -100,19 +95,19 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
 	// Load block
 	s.blocksLock.RLock()
-	block, found := s.blocks[kv.ID]
+	block, found := s.blocks.Load(kv.ID)
 	s.blocksLock.RUnlock()
 
 	// Check if ID exists
 	if !found {
-		err := fmt.Errorf("Block with ID %s does not exist", kv.ID)
+		err := fmt.Errorf("Block with ID %q does not exist", kv.ID)
 		s.logger.Printf("Storage.Migrate(%q, %q) => %q", kv.ID, kv.Dest, err)
 		return err
 	}
 
 	// Start an RPC session with the destination and copy the block
 	rs, _ := s.rpc.LoadOrStore(kv.Dest, NewRPCStorage(kv.Dest))
-	blockKV := structure.BlockKV{ID: kv.ID, Data: block}
+	blockKV := structure.BlockKV{ID: kv.ID, Data: block.(gifts.Block)}
 	if err := rs.(*RPCStorage).Set(&blockKV); err != nil {
 		s.logger.Printf("Storage.Migrate(%q, %q) => %v", kv.ID, kv.Dest, err)
 		return err
@@ -125,9 +120,7 @@ func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
 // Unset deletes the data associated with the block's ID
 func (s *Storage) Unset(id string, ignore *bool) error {
 	// Load block
-	s.blocksLock.RLock()
-	_, found := s.blocks[id]
-	s.blocksLock.RUnlock()
+	_, found := s.blocks.Load(id)
 
 	// Check if ID exists
 	if !found {
@@ -137,9 +130,7 @@ func (s *Storage) Unset(id string, ignore *bool) error {
 	}
 
 	// Delete block
-	s.blocksLock.Lock()
-	delete(s.blocks, id)
-	s.blocksLock.Unlock()
+	s.blocks.Delete(id)
 
 	s.logger.Printf("Storage.Unset(%q) => success", id)
 	return nil
