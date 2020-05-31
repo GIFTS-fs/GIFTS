@@ -21,6 +21,7 @@ type Storage struct {
 	logger     *gifts.Logger // PRODUCTION: banish this
 	blocks     map[string]gifts.Block
 	blocksLock sync.RWMutex
+	rpc        sync.Map
 }
 
 // NewStorage creates a new storage node
@@ -82,9 +83,9 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 
 	// Check if ID exists
 	if !found {
-		msg := fmt.Sprintf("Block with ID %s does not exist", id)
-		s.logger.Printf("Storage.Get(%q) => %q", id, msg)
-		return fmt.Errorf(msg)
+		err := fmt.Errorf("Block with ID %s does not exist", id)
+		s.logger.Printf("Storage.Get(%q) => %q", id, err)
+		return err
 	}
 
 	// Copy data
@@ -92,6 +93,32 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	copy(*ret, block)
 
 	s.logger.Printf("Storage.Get(%q) => %d bytes", id, len(block))
+	return nil
+}
+
+// Migrate copies the specified block to the destination Storage node
+func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
+	// Load block
+	s.blocksLock.RLock()
+	block, found := s.blocks[kv.ID]
+	s.blocksLock.RUnlock()
+
+	// Check if ID exists
+	if !found {
+		err := fmt.Errorf("Block with ID %s does not exist", kv.ID)
+		s.logger.Printf("Storage.Migrate(%q, %q) => %q", kv.ID, kv.Dest, err)
+		return err
+	}
+
+	// Start an RPC session with the destination and copy the block
+	rs, _ := s.rpc.LoadOrStore(kv.Dest, NewRPCStorage(kv.Dest))
+	blockKV := structure.BlockKV{ID: kv.ID, Data: block}
+	if err := rs.(*RPCStorage).Set(&blockKV); err != nil {
+		s.logger.Printf("Storage.Migrate(%q, %q) => %v", kv.ID, kv.Dest, err)
+		return err
+	}
+
+	s.logger.Printf("Storage.Migrate(%q, %q) => success", kv.ID, kv.Dest)
 	return nil
 }
 
@@ -104,9 +131,9 @@ func (s *Storage) Unset(id string, ignore *bool) error {
 
 	// Check if ID exists
 	if !found {
-		msg := fmt.Sprintf("Block with ID %s does not exist", id)
-		s.logger.Printf("Storage.Unset(%q) => %q", id, msg)
-		return fmt.Errorf(msg)
+		err := fmt.Errorf("Block with ID %s does not exist", id)
+		s.logger.Printf("Storage.Unset(%q) => %q", id, err)
+		return err
 	}
 
 	// Delete block
