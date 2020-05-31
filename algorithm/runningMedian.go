@@ -37,9 +37,11 @@ func NewRunningMedian() *RunningMedian {
 	return r
 }
 
-// update the median, assuming there is at least one data
-func (r *RunningMedian) calcuate() {
-	if r.size&1 == 1 {
+// calculate updates the median, assuming there is at least one data
+func (r *RunningMedian) calculate() {
+	if r.size == 0 {
+		r.median = 0
+	} else if r.size&1 == 1 {
 		r.median = r.lower.Top()
 	} else {
 		r.median = 0.5 * (r.lower.Top() + r.higher.Top())
@@ -76,7 +78,7 @@ func (r *RunningMedian) Add(add float64) {
 	r.balance()
 
 	r.size++
-	r.calcuate()
+	r.calculate()
 }
 
 // delete until either top is not a number
@@ -131,7 +133,7 @@ func (r *RunningMedian) Delete(del float64) {
 	// 1
 	r.size--
 	if r.size > 0 {
-		r.calcuate()
+		r.calculate()
 	} else {
 		r.median = 0
 	}
@@ -141,6 +143,10 @@ func (r *RunningMedian) Delete(del float64) {
 // If the element to delete was not Added,
 // the behavior is undefined (may panic eventually)
 func (r *RunningMedian) Update(del, add float64) {
+	if del == add {
+		return
+	}
+
 	balance := 0
 
 	// LogN or buffer
@@ -183,5 +189,5 @@ func (r *RunningMedian) Update(del, add float64) {
 	r.delete()
 
 	// 1
-	r.calcuate()
+	r.calculate()
 }
