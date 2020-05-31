@@ -35,13 +35,16 @@ func NewRunningMedian() *RunningMedian {
 		del:    make(map[float64]int),
 	}
 
+	// useless calls, cosmetic only
 	heap.Init(r.lower)
 	heap.Init(r.higher)
 
 	return r
 }
 
-// calculate updates the median, assuming there is at least one data
+// calculate the median and update
+// assuming there is at least one data
+// and it must be in lower heap
 func (r *RunningMedian) calculate() {
 	if r.size&1 == 1 {
 		r.median = r.lower.Top()
@@ -50,14 +53,14 @@ func (r *RunningMedian) calculate() {
 	}
 }
 
-// Median of seen data, not concurrency safe
+// Median of seen data
 func (r *RunningMedian) Median() float64 {
 	return r.median
 }
 
-// balance the lower and higher.
-// **Must** be called after deleting,
-// i.e. it must be moving non-to-be-deleted elements
+// balance the lower and higher,
+// may contain bugs.
+// ideally mimic the behavior of Update
 func (r *RunningMedian) balance(balance int) {
 	if balance > 0 && r.lower.Len()-r.delLower > r.higher.Len()-r.delHigher+1 {
 		heap.Push(r.higher, heap.Pop(r.lower))
@@ -66,7 +69,7 @@ func (r *RunningMedian) balance(balance int) {
 	}
 }
 
-// Add a new data, not concurrency safe
+// Add a new data
 func (r *RunningMedian) Add(add float64) {
 	balance := 0
 
@@ -88,6 +91,8 @@ func (r *RunningMedian) Add(add float64) {
 
 // delete until either top is not a number
 // that was marked as to delete
+// Assume delLower is correct count of number to delete in current lower heap
+// and vice versa
 func (r *RunningMedian) delete() {
 	for r.lower.Len() > 0 && r.del[r.lower.Top()] > 0 {
 		r.del[r.lower.Top()]--
@@ -101,7 +106,8 @@ func (r *RunningMedian) delete() {
 		r.delHigher--
 	}
 
-	// edge case: deleting until r.size == 1
+	// edge case: deleting until r.size == 1 and last one on higher
+	// this implies potential bugs
 	if r.lower.Len() == 0 && r.higher.Len() == 1 {
 		heap.Push(r.lower, heap.Pop(r.higher))
 	}
@@ -110,6 +116,7 @@ func (r *RunningMedian) delete() {
 // Delete an element, not concurrency safe.
 // If the element to delete was not Added,
 // the behavior is undefined (may panic eventually)
+// Not tested!
 func (r *RunningMedian) Delete(del float64) {
 	if r.size <= 0 {
 		return
@@ -141,10 +148,9 @@ func (r *RunningMedian) Delete(del float64) {
 
 	r.size--
 
-	// amortized 1, deletes the ones buffered
-	r.delete()
-	// 1 or LogN, depends on the data shape
+	r.delete() // ensures not moving to-be-deleted data
 	r.balance(balance)
+	r.delete()
 
 	// 1
 	if r.size > 0 {
@@ -164,7 +170,6 @@ func (r *RunningMedian) Update(del, add float64) {
 
 	balance := 0
 
-	// LogN or buffer
 	if del <= r.lower.Top() {
 		balance--
 		if del == r.lower.Top() {
@@ -183,7 +188,6 @@ func (r *RunningMedian) Update(del, add float64) {
 		}
 	}
 
-	// LogN
 	if r.lower.Len() > 0 && add <= r.lower.Top() {
 		balance++
 		heap.Push(r.lower, add)
@@ -192,19 +196,13 @@ func (r *RunningMedian) Update(del, add float64) {
 		heap.Push(r.higher, add)
 	}
 
-	// 1 or LogN (but never 2*logN, the case when calling Add
-	// and Delete separately), depends on the data shape
-	// with good data, can save 2 logN by no need
-	// to balance after 1 delete and 1 add
 	if balance < 0 {
 		heap.Push(r.lower, heap.Pop(r.higher))
 	} else if balance > 0 {
 		heap.Push(r.higher, heap.Pop(r.lower))
 	}
 
-	// amortized 1, deletes the ones buffered
 	r.delete()
 
-	// 1
 	r.calculate()
 }

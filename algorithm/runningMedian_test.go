@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/GIFTS-fs/GIFTS/test"
 )
@@ -66,6 +67,18 @@ func TestRunningMedianAdd(t *testing.T) {
 	for i := 0; i < 999; i++ {
 		data = append(data, float64(i))
 	}
+	rand.Shuffle(999, func(i, j int) { data[i], data[j] = data[j], data[i] })
+	for _, f := range data {
+		running.Add(f)
+	}
+	as(running.Median(), 999/2, "999/2")
+
+	// [0...999] but shuffled again
+	running = NewRunningMedian()
+	for i := 0; i < 999; i++ {
+		data = append(data, float64(i))
+	}
+	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(999, func(i, j int) { data[i], data[j] = data[j], data[i] })
 	for _, f := range data {
 		running.Add(f)
@@ -163,6 +176,34 @@ func TestRunningMedianUpdate(t *testing.T) {
 		as(running.Median(), window[2], "window size 5")
 	}
 
+	// [0...999] but shuffled again
+	// sliding window size 5
+	running = NewRunningMedian()
+	data = []float64{}
+	window = []float64{}
+	for i := 0; i < 999; i++ {
+		data = append(data, float64(i))
+	}
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(999, func(i, j int) { data[i], data[j] = data[j], data[i] })
+	for i := 0; i < 5; i++ {
+		running.Add(data[i])
+		window = append(window, data[i])
+	}
+	sort.Slice(window, func(i, j int) bool { return window[i] < window[j] })
+	as(running.Median(), window[2], "window size 5")
+	for i := 5; i < 999; i++ {
+		running.Update(data[i-5], data[i])
+		for j := range window {
+			if window[j] == data[i-5] {
+				window[j] = data[i]
+				sort.Slice(window, func(i, j int) bool { return window[i] < window[j] })
+				break
+			}
+		}
+		as(running.Median(), window[2], "window size 5")
+	}
+
 	// [0...999] but shuffled
 	// sliding window size 6
 	running = NewRunningMedian()
@@ -171,6 +212,34 @@ func TestRunningMedianUpdate(t *testing.T) {
 	for i := 0; i < 999; i++ {
 		data = append(data, float64(i))
 	}
+	rand.Shuffle(999, func(i, j int) { data[i], data[j] = data[j], data[i] })
+	for i := 0; i < 6; i++ {
+		running.Add(data[i])
+		window = append(window, data[i])
+	}
+	sort.Slice(window, func(i, j int) bool { return window[i] < window[j] })
+	as(running.Median(), 0.5*(window[2]+window[3]), "window size 6")
+	for i := 6; i < 999; i++ {
+		running.Update(data[i-6], data[i])
+		for j := range window {
+			if window[j] == data[i-6] {
+				window[j] = data[i]
+				sort.Slice(window, func(i, j int) bool { return window[i] < window[j] })
+				break
+			}
+		}
+		as(running.Median(), 0.5*(window[2]+window[3]), "window size 6")
+	}
+
+	// [0...999] but shuffled again
+	// sliding window size 6
+	running = NewRunningMedian()
+	data = []float64{}
+	window = []float64{}
+	for i := 0; i < 999; i++ {
+		data = append(data, float64(i))
+	}
+	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(999, func(i, j int) { data[i], data[j] = data[j], data[i] })
 	for i := 0; i < 6; i++ {
 		running.Add(data[i])
