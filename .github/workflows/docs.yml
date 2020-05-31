@@ -27,9 +27,8 @@ jobs:
         run: ./docs.sh
 
       - name: Push to Docs
-        uses: johno/actions-push-subdirectories@master
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ad-m/github-push-action@master
         with:
-          args: docs-build GIFTS-fs Docs
+          github_token: ${{ secrets.API_TOKEN_GITHUB }}
+          directory: 'docs-build'
+          repository: 'GIFTS-fs/Docs'

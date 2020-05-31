@@ -12,5 +12,9 @@ godoc -html . > "${docs}/GIFTS.html"
 
 for package in "${subpackages[@]}"
 do
+    echo "    Building ${package}"
     godoc -html "./${package}" > "${docs}/${package}.html"
 done
+
+echo "Finished building ${docs}"
+ls -lhA "${docs}"
