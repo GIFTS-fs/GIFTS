@@ -56,14 +56,9 @@ func (r *RunningMedian) Median() float64 {
 }
 
 // balance the lower and higher.
-// clearly, adding 1 or deleting 1 has 1/2 chance to
-// lose balance
+// **Must** be called after deleting,
+// i.e. it must be moving non-to-be-deleted elements
 func (r *RunningMedian) balance(balance int) {
-	// if balance < 0 && r.higher.Len() > 1 {
-	// 	heap.Push(r.lower, heap.Pop(r.higher))
-	// } else if balance > 0 && r.lower.Len() > 1 {
-	// 	heap.Push(r.higher, heap.Pop(r.lower))
-	// }
 	if balance > 0 && r.lower.Len()-r.delLower > r.higher.Len()-r.delHigher+1 {
 		heap.Push(r.higher, heap.Pop(r.lower))
 	} else if balance < 0 && r.lower.Len()-r.delLower < r.higher.Len()-r.delHigher {
@@ -146,10 +141,10 @@ func (r *RunningMedian) Delete(del float64) {
 
 	r.size--
 
-	// 1 or LogN, depends on the data shape
-	r.balance(balance)
 	// amortized 1, deletes the ones buffered
 	r.delete()
+	// 1 or LogN, depends on the data shape
+	r.balance(balance)
 
 	// 1
 	if r.size > 0 {
