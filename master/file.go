@@ -36,7 +36,7 @@ func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (fm *fMeta,
 	}
 
 	// Only set the data once globally
-	nBlocks := gifts.NBlocks(req.Fsize)
+	nBlocks := gifts.NBlocks(m.config.GiftsBlockSize, req.Fsize)
 	fm.fSize = req.Fsize
 	fm.nBlocks = nBlocks
 	fm.rFactor = req.Rfactor
