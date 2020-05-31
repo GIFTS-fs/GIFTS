@@ -33,9 +33,9 @@ jobs:
         run: |
           rm -rf .git
           cd docs-build
+          git init
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git init
           git add *.html
           git commit -m "Add docs" 
           git push "https://$GITHUB_ACTOR:${{ secrets.API_TOKEN_GITHUB }}@github.com/GIFTS-fs/Docs.git" master -f
