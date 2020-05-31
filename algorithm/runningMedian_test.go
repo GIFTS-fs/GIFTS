@@ -21,40 +21,47 @@ func TestRunningMedianAdd(t *testing.T) {
 	var running *RunningMedian
 	var data []float64
 
+	// A good old base case: [1]
 	running = NewRunningMedian()
 	running.Add(1)
 	as(running.Median(), 1, "1")
 
+	// [1] * 1000
 	running = NewRunningMedian()
 	for i := 0; i < 1000; i++ {
 		running.Add(1)
 	}
 	as(running.Median(), 1, "1000 * 1")
 
+	// [1, 2, 3, 4]
 	running = NewRunningMedian()
 	for i := 1; i <= 4; i++ {
 		running.Add(float64(i))
 	}
 	as(running.Median(), 2.5, "1 2 3 4")
 
+	// [1, 2, 3, 4, 5]
 	running = NewRunningMedian()
 	for i := 1; i <= 5; i++ {
 		running.Add(float64(i))
 	}
 	as(running.Median(), 3, "1 2 3 4 5")
 
+	// [0...999]
 	running = NewRunningMedian()
 	for i := 0; i < 999; i++ {
 		running.Add(float64(i))
 	}
 	as(running.Median(), 999/2, "999/2")
 
+	// [999...0]
 	running = NewRunningMedian()
 	for i := 999 - 1; i >= 0; i-- {
 		running.Add(float64(i))
 	}
 	as(running.Median(), 999/2, "999/2")
 
+	// [0...999] but shuffled
 	running = NewRunningMedian()
 	for i := 0; i < 999; i++ {
 		data = append(data, float64(i))
@@ -78,12 +85,14 @@ func TestRunningMedianUpdate(t *testing.T) {
 	var running *RunningMedian
 	var data, window []float64
 
+	// [1] -> [1]
 	running = NewRunningMedian()
 	running.Add(1)
 	as(running.Median(), 1, "1")
 	running.Update(1, 1)
 	as(running.Median(), 1, "1")
 
+	// [0] -> [1] -> ... -> [1000]
 	running = NewRunningMedian()
 	running.Add(0)
 	for i := 0; i < 1000; i++ {
@@ -91,6 +100,7 @@ func TestRunningMedianUpdate(t *testing.T) {
 	}
 	as(running.Median(), 1000, "1000")
 
+	// [0, 123] -> [1000, 123]
 	running = NewRunningMedian()
 	running.Add(0)
 	running.Add(123)
@@ -99,6 +109,7 @@ func TestRunningMedianUpdate(t *testing.T) {
 	}
 	as(running.Median(), 0.5*1123, "1000, 123")
 
+	// [1] * 1000 -> [1] * 1000 -> [2] * 1000
 	running = NewRunningMedian()
 	for i := 0; i < 1000; i++ {
 		running.Add(1)
@@ -113,6 +124,7 @@ func TestRunningMedianUpdate(t *testing.T) {
 	}
 	as(running.Median(), 2, "1000 * 2")
 
+	// [1] * 1000 -> [1,3] * 500 -> [1,3] * 500 + [2]
 	running = NewRunningMedian()
 	for i := 0; i < 1000; i++ {
 		running.Add(1)
@@ -124,7 +136,8 @@ func TestRunningMedianUpdate(t *testing.T) {
 	running.Add(2)
 	as(running.Median(), 2, "500 * 1, 500 * 3, 1 * 2")
 
-	// window size 5
+	// [0...999] but shuffled
+	// sliding window size 5
 	running = NewRunningMedian()
 	data = []float64{}
 	window = []float64{}
@@ -150,7 +163,8 @@ func TestRunningMedianUpdate(t *testing.T) {
 		as(running.Median(), window[2], "window size 5")
 	}
 
-	// window size 6
+	// [0...999] but shuffled
+	// sliding window size 6
 	running = NewRunningMedian()
 	data = []float64{}
 	window = []float64{}
@@ -188,6 +202,7 @@ func TestRunningMedianDelete(t *testing.T) {
 
 	var running *RunningMedian
 
+	// [1] -> [1,2] -> [2]
 	running = NewRunningMedian()
 	running.Add(1)
 	as(running.Median(), 1, "1")
@@ -196,6 +211,7 @@ func TestRunningMedianDelete(t *testing.T) {
 	running.Delete(1)
 	as(running.Median(), 2, "2")
 
+	// [1] -> [1,2] -> [1]
 	running = NewRunningMedian()
 	running.Add(1)
 	as(running.Median(), 1, "1")
@@ -203,6 +219,18 @@ func TestRunningMedianDelete(t *testing.T) {
 	as(running.Median(), 1.5, "1.5")
 	running.Delete(2)
 	as(running.Median(), 1, "1")
+
+	// [1] -> [1,2] -> [1] -> [] -> [3]
+	running = NewRunningMedian()
+	running.Add(1)
+	as(running.Median(), 1, "1")
+	running.Add(2)
+	as(running.Median(), 1.5, "1.5")
+	running.Delete(2)
+	as(running.Median(), 1, "1")
+	running.Delete(1)
+	running.Add(3)
+	as(running.Median(), 3, "3")
 
 	// TODO!!! add more tests
 }

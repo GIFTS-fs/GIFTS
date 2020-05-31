@@ -3,9 +3,16 @@ package algorithm
 import "container/heap"
 
 // TODO: make the whole class concurrency safe without locks
-// namely, remove strict requirements on size, if 0 then quit gracefully
+// namely, remove strict requirements on size, if 0 then quit gracefully.
+// That requires new algorithm
 
-// RunningMedian provides median for a data stream
+// RunningMedian provides median for a data stream:
+//
+// Invariant:
+//
+// * {x \in lower | x <= median}
+// * {x \in higher and x != higher.Top() | x > median }
+// when N is odd, median is .5*(higher.Top() + lower.Top())
 type RunningMedian struct {
 	size   uint64
 	median float64
@@ -13,7 +20,7 @@ type RunningMedian struct {
 	lower  *MaxFloat64Heap
 	higher *MinFloat64Heap
 
-	del map[float64]int
+	del map[float64]int // lazy delete: buffer of the numbers to delete
 }
 
 // NewRunningMedian constructs a RunningMedian for the given less function
@@ -30,6 +37,7 @@ func NewRunningMedian() *RunningMedian {
 	return r
 }
 
+// update the median, assuming there is at least one data
 func (r *RunningMedian) calcuate() {
 	if r.size&1 == 1 {
 		r.median = r.lower.Top()
@@ -43,6 +51,10 @@ func (r *RunningMedian) Median() float64 {
 	return r.median
 }
 
+// balance the lower and higher to ensure
+// the invariant: len(lower) >= 1 + len(higher).
+// clearly, adding 1 or deleting 1 has 1/2 chance to
+// lose balance, whereas adding 1 and deleting 1
 func (r *RunningMedian) balance() {
 	if r.lower.Len() > r.higher.Len()+1 {
 		heap.Push(r.higher, heap.Pop(r.lower))
@@ -53,18 +65,22 @@ func (r *RunningMedian) balance() {
 
 // Add a new data, not concurrency safe
 func (r *RunningMedian) Add(add float64) {
+	// log N
 	if r.lower.Len() == 0 || add <= r.lower.Top() {
 		heap.Push(r.lower, add)
 	} else {
 		heap.Push(r.higher, add)
 	}
 
+	// 1 or log N, depends on the data shape
 	r.balance()
 
 	r.size++
 	r.calcuate()
 }
 
+// delete until either top is not a number
+// that was marked as to delete
 func (r *RunningMedian) delete() {
 	for r.lower.Len() > 0 && r.del[r.lower.Top()] > 0 {
 		r.del[r.lower.Top()]--
@@ -77,19 +93,24 @@ func (r *RunningMedian) delete() {
 	}
 }
 
-// Delete an element, not concurrency safe
+// Delete an element, not concurrency safe.
+// If the element to delete was not Added,
+// the behavior is undefined (may panic eventually)
 func (r *RunningMedian) Delete(del float64) {
 	if r.size <= 0 {
 		return
 	}
 
+	// logN or buffer
 	if del <= r.lower.Top() {
 		if del == r.lower.Top() {
 			heap.Pop(r.lower)
 		} else {
 			r.del[del]++
 		}
-		heap.Push(r.lower, heap.Pop(r.higher))
+		if r.size > 1 {
+			heap.Push(r.lower, heap.Pop(r.higher))
+		}
 	} else {
 		if del == r.higher.Top() {
 			heap.Pop(r.higher)
@@ -99,19 +120,30 @@ func (r *RunningMedian) Delete(del float64) {
 		heap.Push(r.higher, heap.Pop(r.lower))
 	}
 
+	// TODO: which one to call first?
+	// this may hide a bug
+
+	// 1 or LogN, depends on the data shape
 	r.balance()
+	// amortized 1, deletes the ones buffered
 	r.delete()
 
+	// 1
 	r.size--
-	r.calcuate()
+	if r.size > 0 {
+		r.calcuate()
+	} else {
+		r.median = 0
+	}
 }
 
-// Update the median by deleting del and adding add,
-// assuming del has been seen, will break the internal
-// datastructure otherwise
+// Update the median by deleting del and adding add.
+// If the element to delete was not Added,
+// the behavior is undefined (may panic eventually)
 func (r *RunningMedian) Update(del, add float64) {
 	balance := 0
 
+	// LogN or buffer
 	if del <= r.lower.Top() {
 		balance--
 		if del == r.lower.Top() {
@@ -128,6 +160,7 @@ func (r *RunningMedian) Update(del, add float64) {
 		}
 	}
 
+	// LogN
 	if r.lower.Len() > 0 && add <= r.lower.Top() {
 		balance++
 		heap.Push(r.lower, add)
@@ -136,13 +169,19 @@ func (r *RunningMedian) Update(del, add float64) {
 		heap.Push(r.higher, add)
 	}
 
+	// 1 or LogN (but never 2*logN, the case when calling Add
+	// and Delete separately), depends on the data shape
+	// with good data, can save 2 logN by no need
+	// to balance after 1 delete and 1 add
 	if balance < 0 {
 		heap.Push(r.lower, heap.Pop(r.higher))
 	} else if balance > 0 {
 		heap.Push(r.higher, heap.Pop(r.lower))
 	}
 
+	// amortized 1, deletes the ones buffered
 	r.delete()
 
+	// 1
 	r.calcuate()
 }
