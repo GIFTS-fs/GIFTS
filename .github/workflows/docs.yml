@@ -36,8 +36,8 @@ jobs:
           git init
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          wget --quiet --show-progress--execute robots=off --no-parent https://godoc.org/-/bootstrap.min.css
-          wget --quiet --show-progress--execute robots=off --no-parent https://godoc.org/-/site.css
+          wget --quiet --show-progress --execute robots=off --no-parent https://godoc.org/-/bootstrap.min.css
+          wget --quiet --show-progress --execute robots=off --no-parent https://godoc.org/-/site.css
           git add *.html
           git add site.css
           git add bootstrap.min.css
