@@ -3,8 +3,10 @@ package storage
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/generate"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
 )
@@ -17,11 +19,13 @@ func TestRPCStorage_Set(t *testing.T) {
 	// Set new data
 	rpcs := NewRPCStorage("localhost:3000")
 	t.Log("TestRPCStorage_Set: Starting test #1")
-	kv := &structure.BlockKV{ID: "id1", Data: []byte("data 1")}
+	kv := &structure.BlockKV{ID: "id1", Data: gifts.Block("data 1")}
 	err := rpcs.Set(kv)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 	for i := range kv.Data {
-		test.AF(t, kv.Data[i] == s.blocks["id1"][i], fmt.Sprintf("Expected %c but found %c", kv.Data[i], s.blocks["id1"]))
+		data, _ := s.blocks.Load("id1")
+		actual := data.(gifts.Block)[i]
+		test.AF(t, kv.Data[i] == actual, fmt.Sprintf("Expected %c but found %c", kv.Data[i], actual))
 	}
 
 	// Overwrite old data
@@ -30,7 +34,9 @@ func TestRPCStorage_Set(t *testing.T) {
 	err = rpcs.Set(kv)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Set failed: %v", err))
 	for i := range kv.Data {
-		test.AF(t, kv.Data[i] == s.blocks["id1"][i], fmt.Sprintf("Expected %c but found %c", kv.Data[i], s.blocks["id1"]))
+		data, _ := s.blocks.Load("id1")
+		actual := data.(gifts.Block)[i]
+		test.AF(t, kv.Data[i] == actual, fmt.Sprintf("Expected %c but found %c", kv.Data[i], actual))
 	}
 
 	// Parallel sets
@@ -59,7 +65,8 @@ func TestRPCStorage_Set(t *testing.T) {
 
 		for j := range data {
 			expected := data[j]
-			actual := s.blocks[id][j]
+			actualData, _ := s.blocks.Load(id)
+			actual := actualData.(gifts.Block)[j]
 			test.AF(t, expected == actual, fmt.Sprintf("ID %s: Expected %c but found %c", id, expected, actual))
 		}
 	}
@@ -79,14 +86,14 @@ func TestRPCStorage_Get(t *testing.T) {
 
 	// Get empty data
 	t.Log("TestStorage_Get: Starting test #2")
-	s.blocks["id1"] = make([]byte, 0)
+	s.blocks.Store("id1", gifts.Block(""))
 	err = rpcs.Get("id1", data)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
 	test.AF(t, len(*data) == 0, fmt.Sprintf("Expected empty data, found %q", *data))
 
 	// Get some data
 	t.Log("TestStorage_Get: Starting test #3")
-	s.blocks["id2"] = []byte("some data")
+	s.blocks.Store("id2", gifts.Block("some data"))
 	err = rpcs.Get("id2", data)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Get failed: %v", err))
 	test.AF(t, string(*data) == "some data", fmt.Sprintf("Expected \"some data\", found %q", *data))
@@ -97,7 +104,7 @@ func TestRPCStorage_Get(t *testing.T) {
 	for i := 0; i < nBlocks; i++ {
 		id := fmt.Sprintf("id_%d", i)
 		data := gifts.Block(fmt.Sprintf("data_%d", i))
-		s.blocks[id] = []byte(data)
+		s.blocks.Store(id, data)
 	}
 
 	nGets := 100
@@ -128,7 +135,7 @@ func TestRPCStorage_Replicate(t *testing.T) {
 	var err error
 
 	s1 := NewStorage()
-	s1.blocks["valid_id"] = []byte("Hello World")
+	s1.blocks.Store("valid_id", gifts.Block("Hello World"))
 	ServeRPC(s1, "localhost:3200")
 	rs := NewRPCStorage("localhost:3200")
 
@@ -156,9 +163,9 @@ func TestRPCStorage_Replicate(t *testing.T) {
 	err = rs.Replicate(&kv)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Replicate failed: %v", err))
 
-	expected := string(s1.blocks["valid_id"])
-	actual := string(s2.blocks["valid_id"])
-	test.AF(t, expected == actual, fmt.Sprintf("Expected %q, found %q", expected, actual))
+	expected, _ := s1.blocks.Load("valid_id")
+	actual, _ := s2.blocks.Load("valid_id")
+	test.AF(t, string(expected.(gifts.Block)) == string(actual.(gifts.Block)), fmt.Sprintf("Expected %q, found %q", expected, actual))
 }
 
 func TestRPCStorage_Unset(t *testing.T) {
@@ -174,10 +181,12 @@ func TestRPCStorage_Unset(t *testing.T) {
 
 	// Unset data
 	t.Log("TestStorage_Set: Starting test #2")
-	s.blocks["id1"] = []byte("data 1")
+	s.blocks.Store("id1", gifts.Block("data 1"))
 	err = rpcs.Unset("id1", nil)
 	test.AF(t, err == nil, fmt.Sprintf("Storage.Unset failed: %v", err))
-	test.AF(t, len(s.blocks["id1"]) == 0, fmt.Sprintf("Expected no data, found %q", s.blocks["id1"]))
+	actual, found := s.blocks.Load("id1")
+	test.AF(t, !found, "Expected no data")
+	test.AF(t, actual == nil, fmt.Sprintf("Expected no data, found %q", actual))
 
 	// Parallel unset
 	t.Log("TestStorage_Set: Starting test #3")
@@ -185,7 +194,7 @@ func TestRPCStorage_Unset(t *testing.T) {
 	for i := 0; i < nUnsets; i++ {
 		id := fmt.Sprintf("id_%d", i)
 		data := gifts.Block(fmt.Sprintf("data_%d", i))
-		s.blocks[id] = data
+		s.blocks.Store(id, data)
 	}
 
 	done := make(chan bool, nUnsets)
@@ -203,6 +212,98 @@ func TestRPCStorage_Unset(t *testing.T) {
 
 	for i := 0; i < nUnsets; i++ {
 		id := fmt.Sprintf("id_%d", i)
-		test.AF(t, len(s.blocks[id]) == 0, fmt.Sprintf("Expected no data, found %q", s.blocks[id]))
+		actual, found := s.blocks.Load(id)
+		test.AF(t, !found, "Expected no data")
+		test.AF(t, actual == nil, fmt.Sprintf("Expected no data, found %q", actual))
+	}
+}
+
+func TestBenchmarkRPCStorage_Set(t *testing.T) {
+	t.Skip()
+	g := generate.NewGenerate()
+	nRuns := int64(10)
+	nTestsPerRun := int64(50000)
+
+	s := NewStorage()
+	ServeRPC(s, "localhost:4000")
+	s.logger.Enabled = false
+
+	rpcs := NewRPCStorage("localhost:4000")
+	rpcs.logger.Enabled = false
+
+	for blockSize := int64(2); blockSize <= 65536; blockSize *= 2 {
+		runElapsed := int64(0)
+		for i := int64(0); i < nRuns; i++ {
+
+			testElapsed := int64(0)
+			for n := int64(0); n < nTestsPerRun; n++ {
+				id := fmt.Sprintf("id_%d", n)
+				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
+				g.Read(kv.Data)
+
+				startTime := time.Now()
+				rpcs.Set(&kv)
+				testElapsed += time.Since(startTime).Nanoseconds()
+			}
+			runElapsed += (testElapsed / nTestsPerRun)
+		}
+		t.Logf("Block size %d: %d", blockSize, runElapsed/nRuns)
+	}
+}
+
+func TestBenchmarkRPCStorage_Get(t *testing.T) {
+	t.Skip()
+	g := generate.NewGenerate()
+	nRuns := int64(10)
+	nTestsPerRun := int64(1000)
+
+	s := NewStorage()
+	s.logger.Enabled = false
+	ServeRPC(s, "localhost:4000")
+
+	// For block size
+	for blockSize := int64(128); blockSize <= 4096; blockSize *= 2 {
+
+		// For number of readers
+		for nReaders := 97; nReaders <= 100; nReaders++ {
+			for n := int64(0); n < nTestsPerRun; n++ {
+				id := fmt.Sprintf("id_%d", n)
+				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
+				g.Read(kv.Data)
+				s.Set(&kv, nil)
+			}
+
+			// For nRuns
+			done := make(chan float32, nReaders)
+			runThroughput := float32(0)
+			for run := int64(0); run < nRuns; run++ {
+
+				for reader := 0; reader < nReaders; reader++ {
+					go func() {
+						// For nTestsPerRun
+						testElapsed := int64(0)
+						data := new(gifts.Block)
+						rpcs := NewRPCStorage("localhost:4000")
+						rpcs.logger.Enabled = false
+						for testRun := int64(0); testRun < nTestsPerRun; testRun++ {
+							id := fmt.Sprintf("id_%d", testRun)
+
+							startTime := time.Now()
+							rpcs.Get(id, data)
+							testElapsed += time.Since(startTime).Nanoseconds()
+						}
+
+						done <- 1000 * float32(blockSize) / float32(testElapsed/nTestsPerRun)
+					}()
+				}
+
+				for reader := 0; reader < nReaders; reader++ {
+					runThroughput += <-done
+				}
+
+			}
+
+			t.Logf("Block size (%d), readers(%d): %.2f", blockSize, nReaders, runThroughput/float32(nRuns))
+		}
 	}
 }
