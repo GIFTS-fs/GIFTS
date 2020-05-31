@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/master"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
@@ -13,15 +14,17 @@ import (
 // Client is the client of GIFTS
 type Client struct {
 	logger   *gifts.Logger // PRODUCTION: banish this
+	config   *config.Config
 	master   *master.Conn
 	storages sync.Map
 }
 
 // NewClient creates a new GIFTS client
-func NewClient(masters []string) *Client {
+func NewClient(masters []string, config *config.Config) *Client {
 	c := Client{}
 	c.logger = gifts.NewLogger("Client", "end-user", true) // PRODUCTION: banish this
-	c.master = master.NewConn(masters[0])                  // WARN: hard-code for single master
+	c.config = config
+	c.master = master.NewConn(masters[0]) // WARN: hard-code for single master
 	return &c
 }
 
@@ -67,7 +70,7 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 		return err
 	}
 
-	nBlocks := gifts.NBlocks(fsize)
+	nBlocks := gifts.NBlocks(c.config.GiftsBlockSize, fsize)
 
 	// Verify that the master gave us the correct number of Storage nodes to
 	// write to.
@@ -81,8 +84,8 @@ func (c *Client) Store(fname string, rfactor uint, data []byte) error {
 	var wg sync.WaitGroup
 	var terr error = nil
 	for i, assignment := range assignments {
-		startIndex := i * gifts.GiftsBlockSize
-		endIndex := (i + 1) * gifts.GiftsBlockSize
+		startIndex := i * c.config.GiftsBlockSize
+		endIndex := (i + 1) * c.config.GiftsBlockSize
 		if endIndex > fsize {
 			endIndex = fsize
 		}
@@ -145,7 +148,7 @@ func (c *Client) Read(fname string) ([]byte, error) {
 	}
 
 	// Verify metadata from Master
-	nBlocks := gifts.NBlocks(fb.Fsize)
+	nBlocks := gifts.NBlocks(c.config.GiftsBlockSize, fb.Fsize)
 	if len(fb.Assignments) != nBlocks {
 		msg := fmt.Sprintf("Master returned %d blocks for a file with %d bytes", len(fb.Assignments), fb.Fsize)
 		c.logger.Printf("Client.Read(fname=%q) => %q", fname, msg)
@@ -176,8 +179,8 @@ func (c *Client) Read(fname string) ([]byte, error) {
 			rpcs, _ = c.storages.LoadOrStore(replica, storage.NewRPCStorage(replica))
 		}
 
-		startIndex := i * gifts.GiftsBlockSize
-		endIndex := (i + 1) * gifts.GiftsBlockSize
+		startIndex := i * c.config.GiftsBlockSize
+		endIndex := (i + 1) * c.config.GiftsBlockSize
 		if endIndex > fb.Fsize {
 			endIndex = fb.Fsize
 		}

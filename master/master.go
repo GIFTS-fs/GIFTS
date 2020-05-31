@@ -11,6 +11,7 @@ import (
 
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/algorithm"
+	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
@@ -27,6 +28,7 @@ const (
 // Master is the master of GIFTS
 type Master struct {
 	logger          *gifts.Logger
+	config          *config.Config
 	fMap            sync.Map
 	nStorage        int // number of storage alive, for 1st phase, it's const
 	storages        []*storage.RPCStorage
@@ -38,12 +40,13 @@ type Master struct {
 
 // NewMaster creates a new GIFTS Master.
 // It requires a list of addresses of Storage nodes.
-func NewMaster(storageAddr []string) *Master {
+func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		nStorage:        len(storageAddr),
 		createClockHand: 0,
 		trafficMedian:   algorithm.NewRunningMedian(),
+		config:          config,
 	}
 
 	// Store a connection to every Storage node
@@ -58,7 +61,7 @@ func NewMaster(storageAddr []string) *Master {
 
 // background tasks of master:
 //
-// 1. peridically attempt to rebalnce load across storage
+// 1. periodically attempt to rebalance load across storage
 func (m *Master) background() {
 	// TODO: make the interval dynamic?
 	tickerRebalance := time.NewTicker(time.Second * rebalanceIntervalSec)
