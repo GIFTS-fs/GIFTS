@@ -29,8 +29,8 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	...
 }
 
-// Migrate copies the specified block to the destination Storage node
-func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
+// Replicate the specified block to the destination Storage node
+func (s *Storage) Replicate(kv *structure.ReplicateKV, ignore *bool) error {
 	...
 }
 
@@ -65,8 +65,8 @@ func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 	...
 }
 
-// Migrate copies the specified block to the destination Storage node
-func (s *RPCStorage) Migrate(kv *structure.MigrateKV) error {
+// Replicate copies the specified block to the destination Storage node
+func (s *RPCStorage) Replicate(kv *structure.ReplicateKV) error {
 	...
 }
 

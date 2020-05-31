@@ -122,9 +122,9 @@ func TestRPCStorage_Get(t *testing.T) {
 	}
 }
 
-func TestRPCStorage_Migrate(t *testing.T) {
+func TestRPCStorage_Replicate(t *testing.T) {
 	t.Parallel()
-	var kv structure.MigrateKV
+	var kv structure.ReplicateKV
 	var err error
 
 	s1 := NewStorage()
@@ -136,25 +136,25 @@ func TestRPCStorage_Migrate(t *testing.T) {
 	ServeRPC(s2, "localhost:3201")
 
 	// Invalid block ID
-	t.Logf("TestStorage_Migrate: Starting test #1")
+	t.Logf("TestStorage_Replicate: Starting test #1")
 	kv.ID = "Invalid ID"
 	kv.Dest = "localhost:3201"
-	err = rs.Migrate(&kv)
-	test.AF(t, err != nil, "Invalid block ID should fail during migrate")
+	err = rs.Replicate(&kv)
+	test.AF(t, err != nil, "Invalid block ID should fail")
 
 	// Invalid destination
-	t.Logf("TestStorage_Migrate: Starting test #2")
+	t.Logf("TestStorage_Replicate: Starting test #2")
 	kv.ID = "valid_id"
 	kv.Dest = "localhost:3300"
-	err = rs.Migrate(&kv)
-	test.AF(t, err != nil, "Invalid destination should fail during migrate")
+	err = rs.Replicate(&kv)
+	test.AF(t, err != nil, "Invalid destination should fail")
 
 	// Valid ID and destination
-	t.Logf("TestStorage_Migrate: Starting test #2")
+	t.Logf("TestStorage_Replicate: Starting test #2")
 	kv.ID = "valid_id"
 	kv.Dest = "localhost:3201"
-	err = rs.Migrate(&kv)
-	test.AF(t, err == nil, fmt.Sprintf("Storage.Migrate failed: %v", err))
+	err = rs.Replicate(&kv)
+	test.AF(t, err == nil, fmt.Sprintf("Storage.Replicate failed: %v", err))
 
 	expected := string(s1.blocks["valid_id"])
 	actual := string(s2.blocks["valid_id"])

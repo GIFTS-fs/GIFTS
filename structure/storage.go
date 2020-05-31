@@ -8,8 +8,8 @@ type BlockKV struct {
 	Data gifts.Block
 }
 
-// MigrateKV is the request type of Storage.Migrate()
-type MigrateKV struct {
+// ReplicateKV is the request type of Storage.Replicate()
+type ReplicateKV struct {
 	ID   string
 	Dest string
 }

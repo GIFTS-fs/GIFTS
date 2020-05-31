@@ -96,8 +96,8 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	return nil
 }
 
-// Migrate copies the specified block to the destination Storage node
-func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
+// Replicate the specified block to the destination Storage node
+func (s *Storage) Replicate(kv *structure.ReplicateKV, ignore *bool) error {
 	// Load block
 	s.blocksLock.RLock()
 	block, found := s.blocks[kv.ID]
@@ -106,7 +106,7 @@ func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
 	// Check if ID exists
 	if !found {
 		err := fmt.Errorf("Block with ID %s does not exist", kv.ID)
-		s.logger.Printf("Storage.Migrate(%q, %q) => %q", kv.ID, kv.Dest, err)
+		s.logger.Printf("Storage.Replicate(%q, %q) => %q", kv.ID, kv.Dest, err)
 		return err
 	}
 
@@ -114,11 +114,11 @@ func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
 	rs, _ := s.rpc.LoadOrStore(kv.Dest, NewRPCStorage(kv.Dest))
 	blockKV := structure.BlockKV{ID: kv.ID, Data: block}
 	if err := rs.(*RPCStorage).Set(&blockKV); err != nil {
-		s.logger.Printf("Storage.Migrate(%q, %q) => %v", kv.ID, kv.Dest, err)
+		s.logger.Printf("Storage.Replicate(%q, %q) => %v", kv.ID, kv.Dest, err)
 		return err
 	}
 
-	s.logger.Printf("Storage.Migrate(%q, %q) => success", kv.ID, kv.Dest)
+	s.logger.Printf("Storage.Replicate(%q, %q) => success", kv.ID, kv.Dest)
 	return nil
 }
 
