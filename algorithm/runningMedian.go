@@ -6,6 +6,10 @@ import "container/heap"
 // namely, remove strict requirements on size, if 0 then quit gracefully.
 // That requires new algorithm
 
+// TODO: the Add() may still need to consider
+// edge cases to behave idential to Update()
+// may contain bugs when mixing Add() and Update()
+
 // RunningMedian provides median for a data stream:
 //
 // Invariant:
