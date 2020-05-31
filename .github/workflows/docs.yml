@@ -36,6 +36,10 @@ jobs:
           git init
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          wget --quiet --show-progress--execute robots=off --no-parent https://godoc.org/-/bootstrap.min.css
+          wget --quiet --show-progress--execute robots=off --no-parent https://godoc.org/-/site.css
           git add *.html
+          git add site.css
+          git add bootstrap.min.css
           git commit -m "Add docs" 
           git push "https://$GITHUB_ACTOR:${{ secrets.API_TOKEN_GITHUB }}@github.com/GIFTS-fs/Docs.git" master -f
