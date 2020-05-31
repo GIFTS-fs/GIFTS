@@ -234,3 +234,93 @@ func TestRunningMedianDelete(t *testing.T) {
 
 	// TODO!!! add more tests
 }
+
+func TestRunningMedian_Add(t *testing.T) {
+	af := func(cond bool, msg string) {
+		test.AF(t, cond, msg)
+	}
+
+	var result float64
+	rm := NewRunningMedian()
+
+	// RunningMedian with zero data points
+	rm.calculate()
+	result = rm.Median()
+	af(result == 0, fmt.Sprintf("Expected %f, received %f", 0.0, result))
+
+	// RunningMedian with one data point: [10]
+	rm.Add(10)
+	result = rm.Median()
+	af(result == 10, fmt.Sprintf("Expected %f, received %f", 10.0, result))
+
+	// Running Median with two data points: [3 10]
+	rm.Add(3)
+	result = rm.Median()
+	af(result == 6.5, fmt.Sprintf("Expected %f, received %f", 6.5, result))
+
+	// Running Median with three data points: [3 7 10]
+	rm.Add(7)
+	result = rm.Median()
+	af(result == 7, fmt.Sprintf("Expected %f, received %f", 7.0, result))
+
+	// Running Median with four data points: [1 3 7 10]
+	rm.Add(1)
+	result = rm.Median()
+	af(result == 5, fmt.Sprintf("Expected %f, received %f", 5.0, result))
+
+	// Running Median with five data points: [1 3 7 10 20]
+	rm.Add(20)
+	result = rm.Median()
+	af(result == 7, fmt.Sprintf("Expected %f, received %f", 7.0, result))
+}
+
+func TestRunningMedian_Update(t *testing.T) {
+	af := func(cond bool, msg string) {
+		test.AF(t, cond, msg)
+	}
+
+	var result float64
+	rm := NewRunningMedian()
+
+	// RunningMedian with one data point: [10] -> [11]
+	rm.Add(10)
+	rm.Update(10, 11)
+	result = rm.Median()
+	af(result == 11, fmt.Sprintf("Expected %f, received %f", 11.0, result))
+	af(rm.lower.data[0] == 11.0, fmt.Sprintf("Expected %f, received %f", 11.0, rm.lower.data[0]))
+
+	// Running Median with two data points: [3 11] -> [4 11]
+	rm.Add(3)
+	rm.Update(3, 4)
+	result = rm.Median()
+	af(result == 7.5, fmt.Sprintf("Expected %f, received %f", 7.5, result))
+	af(rm.lower.data[0] == 4.0, fmt.Sprintf("Expected %f, received %f", 4.0, rm.lower.data[0]))
+	af(rm.higher.data[0] == 11.0, fmt.Sprintf("Expected %f, received %f", 11.0, rm.higher.data[0]))
+
+	// Running Median with three data points: [4 7 11] -> [4 8 11]
+	rm.Add(7)
+	rm.Update(7, 8)
+	result = rm.Median()
+	af(result == 8, fmt.Sprintf("Expected %f, received %f", 8.0, result))
+	af(rm.lower.data[0] == 8.0, fmt.Sprintf("Expected %f, received %f", 8.0, rm.lower.data[0]))
+	af(rm.lower.data[1] == 4.0, fmt.Sprintf("Expected %f, received %f", 4.0, rm.lower.data[1]))
+	af(rm.higher.data[0] == 11.0, fmt.Sprintf("Expected %f, received %f", 11.0, rm.higher.data[0]))
+
+	// Running Median with four data points: [2 4 8 11] -> [1 4 8 11]
+	rm.Add(2)
+	rm.Update(2, 1)
+	t.Log(rm.lower.data)
+	t.Log(rm.higher.data)
+	result = rm.Median()
+	af(result == 6, fmt.Sprintf("Expected %f, received %f", 6.0, result))
+	af(rm.lower.data[0] == 4.0, fmt.Sprintf("Expected %f, received %f", 4.0, rm.lower.data[0]))
+	af(rm.lower.data[1] == 1.0, fmt.Sprintf("Expected %f, received %f", 1.0, rm.lower.data[1]))
+	af(rm.higher.data[0] == 8.0, fmt.Sprintf("Expected %f, received %f", 8.0, rm.higher.data[0]))
+	af(rm.higher.data[11] == 11.0, fmt.Sprintf("Expected %f, received %f", 11.0, rm.higher.data[1]))
+
+	// // Running Median with five data points: [1 4 8 11 19] -> [1 4 8 11 20]
+	// rm.Add(19)
+	// rm.Update(19, 20)
+	// result = rm.Median()
+	// af(result == 8, fmt.Sprintf("Expected %f, received %f", 8.0, result))
+}
