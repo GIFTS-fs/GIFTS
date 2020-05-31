@@ -13,6 +13,7 @@ godoc -html . > "${docs}/index.html"
 for package in "${subpackages[@]}"
 do
     echo "    Building ${package}"
+    mkdir -p "${docs}/${package}"
     godoc -html "./${package}" > "${docs}/${package}/index.html"
 done
 
