@@ -1,0 +1,40 @@
+name: Docs
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.14
+        id: go
+
+      - name: Install godoc
+        run: sudo apt install golang-go.tools
+
+      - name: Checkout the code
+        uses: actions/checkout@master
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
+          fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
+
+      - name: Build the godoc
+        run: ./docs.sh
+
+      - name: Push to docs
+        run: |
+          rm -rf .git
+          cd docs-build
+          git init
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Add docs" 
+          git push "https://$GITHUB_ACTOR:${{ secrets.API_TOKEN_GITHUB }}@github.com/GIFTS-fs/Docs.git" master -f
+          # WARN: the API_TOKEN_GITHUB must be the personal access token of GITHUB_ACTOR, which won't work since this is an org
