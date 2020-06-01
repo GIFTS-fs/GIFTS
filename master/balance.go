@@ -90,7 +90,7 @@ func (m *Master) enlistNewReplicas(fm *fileMeta) (enlistments []*enlistment) {
 
 		bID := fm.assignments[assigned].BlockID
 		enlistment := &enlistment{blockID: bID}
-		used[candidate.rpc.Addr] = enlistment
+		used[candidate.Addr] = enlistment
 		enlistments = append(enlistments, enlistment)
 
 		assigned++

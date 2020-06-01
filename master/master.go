@@ -16,10 +16,6 @@ import (
 )
 
 const (
-	// MaxRfactor limits the value of rfactor,
-	// mere a magic number to prevent uint overlows int
-	MaxRfactor = 256
-
 	// rebalanceIntervalSec
 	rebalanceIntervalSec = 10
 )
@@ -120,14 +116,6 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	// File with the same name already exists
 	if m.fExist(req.Fname) {
 		err := fmt.Errorf("File %q already exists", req.Fname)
-		m.logger.Printf("Master.Create(%v) => %q", *req, err)
-		return err
-	}
-
-	// Set some (arbitrary) limit on the maximum number of replicas, regardless
-	// of the number of Storage nodes.
-	if req.Rfactor > MaxRfactor {
-		err := fmt.Errorf("RFactor %v is too large (> %v)", req.Rfactor, MaxRfactor)
 		m.logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
