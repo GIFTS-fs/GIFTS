@@ -60,7 +60,7 @@ func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assi
 }
 
 // pickReadReplica for the file
-func (m *Master) pickReadReplica(fm *fMeta) (assignment []structure.BlockAssign) {
+func (m *Master) pickReadReplica(fm *fileMeta) (assignment []structure.BlockAssign) {
 	assignment = make([]structure.BlockAssign, fm.nBlocks)
 
 	for i, completeAssignment := range fm.assignments {

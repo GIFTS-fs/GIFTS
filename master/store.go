@@ -20,6 +20,11 @@ func (ab *assignedBlocks) rmBlock(blockID string) {
 	delete(ab.blockIDs, blockID)
 }
 
+func (ab *assignedBlocks) hasBlock(blockID string) bool {
+	b, ok := ab.blockIDs[blockID]
+	return ok && b
+}
+
 // nBlocks number of blocks stored for this file
 func (ab *assignedBlocks) nBlocks() int {
 	return len(ab.blockIDs)
@@ -27,8 +32,8 @@ func (ab *assignedBlocks) nBlocks() int {
 
 type storeMeta struct {
 	Addr string
+	rpc  *storage.RPCStorage
 
-	rpc            *storage.RPCStorage
 	assignmentLock sync.Mutex
 	nBlocks        int // number of blocks assigned
 	storedFiles    map[string]assignedBlocks
@@ -42,3 +47,6 @@ func newStoreMeta(addr string) *storeMeta {
 	}
 	return s
 }
+
+// func (sm *storeMeta) enlist(em *enlistment) {
+// }

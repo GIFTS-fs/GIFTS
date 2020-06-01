@@ -15,11 +15,6 @@ import (
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
-const (
-	// rebalanceIntervalSec
-	rebalanceIntervalSec = 10
-)
-
 // Master is the master of GIFTS
 type Master struct {
 	logger *gifts.Logger
@@ -72,8 +67,8 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 //
 // 1. periodically attempt to rebalance load across storage
 func (m *Master) background() {
-	// TODO: make the interval dynamic?
-	tickerRebalance := time.NewTicker(time.Second * rebalanceIntervalSec)
+	// TODO: make the interval dynamic based on the traffic and number of files?
+	tickerRebalance := time.NewTicker(time.Second * m.config.MasterRebalanceIntervalSec)
 	defer tickerRebalance.Stop()
 
 	for {

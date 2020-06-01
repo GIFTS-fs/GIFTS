@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 )
 
 var (
@@ -14,7 +15,9 @@ var (
 
 // Config holds all configuration data for the system
 type Config struct {
-	GiftsBlockSize int
+	MasterRebalanceIntervalSec  time.Duration
+	TrafficDecayCounterHalfLife float64
+	GiftsBlockSize              int
 }
 
 // Load the system configuration from the config file

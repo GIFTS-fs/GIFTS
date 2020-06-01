@@ -8,16 +8,24 @@ import (
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
-const (
-	decayCounterHalfLife = 5000
-)
+// assignedBlock keeps track of assignment information per block
+type assignedBlock struct {
+	BlockID string
+	// addr -> *storeMeta
+	replicas map[string]*storeMeta
+
+	// Policy 1: Clock
+	clockBeg int
+	clockEnd int
+}
 
 type fileMeta struct {
-	// fixed
-	fName   string
-	fSize   int  // size of the file, to handle padding
-	nBlocks int  // save the compution
-	rFactor uint // how important the user thinks this file is
+	// const fields
+
+	fName   string // file name
+	fSize   int    // size of the file, to handle padding
+	nBlocks int    // save the compution
+	rFactor uint   // how important the user thinks this file is
 
 	nReplica    int                     // real number of replica
 	assignments []structure.BlockAssign // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) >= 1
@@ -39,14 +47,14 @@ func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (fm *fileMe
 	}
 
 	// This is the "constructor" of fileMeta
-	// Only set the data once globally
+	// Only initialize the data once globally
 	nBlocks := gifts.NBlocks(m.config.GiftsBlockSize, req.Fsize)
 	fm.fName = fname
 	fm.fSize = req.Fsize
 	fm.nBlocks = nBlocks
 	fm.rFactor = req.Rfactor
 	fm.assignments, fm.nReplica = m.makeAssignment(req, nBlocks)
-	fm.trafficCounter = algorithm.NewDecayCounter(decayCounterHalfLife)
+	fm.trafficCounter = algorithm.NewDecayCounter(m.config.TrafficDecayCounterHalfLife)
 	fm.trafficCounter.Reset()
 
 	defer m.trafficLock.Unlock()

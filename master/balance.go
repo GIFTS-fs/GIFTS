@@ -61,65 +61,6 @@ type enlistment struct {
 // this list may contain duplicated storage, storage that already
 // stores the file, storage that already stores the block etc.
 func (m *Master) enlistNewReplicas(fm *fileMeta) (enlistments []*enlistment) {
-	// V1: extremely slow, might loop through all the storage multiple times
-
-	assigned, toAssign, nStorage := 0, fm.nBlocks, m.nStorage
-	used := make(map[string]*enlistment)
-	var skipped []*storeMeta
-
-	// First round, find storage that does not have this file at all
-	for walk := 0; walk < nStorage && assigned < toAssign; walk++ {
-		// Provisonal policy: Clock until find enough replicas
-		candidate := m.nextBalanceStorage()
-
-		// check if already storing the file
-		candidate.assignmentLock.Lock()
-		_, found := candidate.storedFiles[fm.fName]
-		candidate.assignmentLock.Unlock()
-		if found {
-			// // Since we always prefer assign to a storage that
-			// // does not have any block related to a file,
-			// // as soon as there is one storage has multiple blocks,
-			// // it means all storages have multiple blocks
-			// if ab.nBlocks() > 1 {
-			// 	skipped = m.storages
-			// }
-			skipped = append(skipped, candidate)
-			continue
-		}
-
-		bID := fm.assignments[assigned].BlockID
-		enlistment := &enlistment{blockID: bID}
-		used[candidate.Addr] = enlistment
-		enlistments = append(enlistments, enlistment)
-
-		assigned++
-	}
-
-	if assigned == toAssign {
-		return
-	}
-
-	// Reaching this line means:
-	// walked the whole storages
-	// have blocks unassigned (toAssign - assigned)
-	// skipped have all storages that are not used
-
-	// collect all unassigned block in a map
-	// for ; assigned < toAssign; assigned++ {
-	// }
-
-	nSkipped := len(skipped)
-
-	// Input: a list of B and S
-	// Output: a list of (B_i, S_j) such that S_j.storedFiles[fm.fName].blockIDs[B_i] = false
-
-	// Second round: find storage that does not have an unassigned blockID from skipped
-	for walk := 0; walk < nSkipped && assigned < toAssign; walk++ {
-	}
-
-	// Third round: find storage that may have the blockID
-
 	return
 }
 
