@@ -11,9 +11,13 @@ import (
 // nextStorage to be assigned for a new block,
 // use CLOCK algorithm to simulate LRU with minimum overhead
 func (m *Master) nextStorage() (s *storage.RPCStorage) {
-	m.createClockHand, s = m.createClockHand+1, m.storages[m.createClockHand]
+	var addr string
+	m.createClockHand, addr = m.createClockHand+1, m.storages[m.createClockHand]
 
-	if m.createClockHand == len(m.storages) {
+	si, _ := m.sMap.Load(addr)
+	s = si.(*storeMeta).rpc
+
+	if m.createClockHand == m.nStorage {
 		m.createClockHand = 0
 	}
 
@@ -25,8 +29,8 @@ func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assi
 	// WARN: SHOULD NOT HAVE TYPE CASTING,
 	// its safety is based on the MaxRFactor is not larger than the overflow number
 	nReplica = int(req.Rfactor)
-	if nReplica > len(m.storages) {
-		nReplica = len(m.storages)
+	if nReplica > m.nStorage {
+		nReplica = m.nStorage
 	}
 
 	assignments = make([]structure.BlockAssign, nBlocks)

@@ -12,7 +12,6 @@ import (
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/algorithm"
 	"github.com/GIFTS-fs/GIFTS/config"
-	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
@@ -27,12 +26,22 @@ const (
 
 // Master is the master of GIFTS
 type Master struct {
-	logger          *gifts.Logger
-	config          *config.Config
-	fMap            sync.Map
-	nStorage        int // number of storage alive, for 1st phase, it's const
-	storages        []*storage.RPCStorage
+	logger *gifts.Logger
+	config *config.Config
+
+	// file name -> *fileMeta
+	fMap sync.Map
+
+	// number of storage alive, for 1st phase, it's const
+	nStorage int
+	// storage addr -> *storeMeta
+	sMap sync.Map
+
 	createClockHand int
+	storages        []string
+
+	isBalancing      bool
+	balanceClockHand int
 
 	trafficMedian *algorithm.RunningMedian
 	trafficLock   sync.Mutex
@@ -45,13 +54,17 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		nStorage:        len(storageAddr),
 		createClockHand: 0,
+		storages:        make([]string, len(storageAddr)),
 		trafficMedian:   algorithm.NewRunningMedian(),
 		config:          config,
 	}
 
-	// Store a connection to every Storage node
+	if copy(m.storages, storageAddr) != len(storageAddr) {
+		return nil
+	}
+
 	for _, addr := range storageAddr {
-		m.storages = append(m.storages, storage.NewRPCStorage(addr))
+		m.sMap.Store(addr, newStoreMeta(addr))
 	}
 
 	rand.Seed(time.Now().UnixNano())
@@ -119,7 +132,7 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 		return err
 	}
 
-	var fm *fMeta
+	var fm *fileMeta
 	var loaded bool
 
 	// Create one and only one fMeta for each file

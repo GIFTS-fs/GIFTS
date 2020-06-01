@@ -260,9 +260,9 @@ func TestMaster_Create(t *testing.T) {
 			af(blockID == assignments[i].BlockID, fmt.Sprintf("Expected block name %q, found %q", blockID, assignments[0].BlockID))
 
 			for _, replica := range assignments[i].Replicas {
-				expectedReplica := m.storages[clock].Addr
+				expectedReplica := m.storages[clock]
 				af(expectedReplica == replica, fmt.Sprintf("Expected replica %q, found %q", expectedReplica, replica))
-				clock = (clock + 1) % len(m.storages)
+				clock = (clock + 1) % m.nStorage
 			}
 		}
 	}
@@ -356,7 +356,7 @@ func TestMaster_Lookup(t *testing.T) {
 			for _, replica := range assignments[i].Replicas {
 				found := false
 				for _, storage := range m.storages {
-					if storage.Addr == replica {
+					if storage == replica {
 						found = true
 						break
 					}
