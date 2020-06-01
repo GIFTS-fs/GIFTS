@@ -105,10 +105,6 @@ func (m *Master) enlistNewReplicas(fm *fileMeta) (enlistments []*enlistment) {
 	// have blocks unassigned (toAssign - assigned)
 	// skipped have all storages that are not used
 
-	// collect all unassigned block in a map
-	// for ; assigned < toAssign; assigned++ {
-	// }
-
 	nSkipped := len(skipped)
 
 	// Input: a list of B and S
