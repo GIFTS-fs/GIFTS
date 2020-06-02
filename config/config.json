@@ -1,7 +1,10 @@
 {
     "GiftsBlockSize": 4096,
     "Storages": [
-        "localhost:4000"
+        "localhost:4000",
+	"localhost:4001",
+	"localhost:4002",
+	"localhost:4003"
     ],
-    "Master": "localhost:4001"
+    "Master": "localhost:4004"
 }

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -254,24 +255,31 @@ func TestClient_Read(t *testing.T) {
 }
 
 func TestBenchmarkClient_ReadOneFile(t *testing.T) {
+	file, err := os.Create("./results.csv")
+	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
+	writer := bufio.NewWriter(file)
+	defer file.Close()
+
 	var testTime float64 = 2
 	var nTests float64 = 1
 
 	config, err := config.LoadGet("../config/config.json")
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
-	s := storage.NewStorage()
-	s.Logger.Enabled = false
-	storage.ServeRPC(s, config.Storages[0])
+	for _, addr := range config.Storages {
+		s := storage.NewStorage()
+		s.Logger.Enabled = false
+		storage.ServeRPC(s, addr)
+	}
 
 	m := master.NewMaster(config.Storages, config)
 	m.Logger.Enabled = false
 	master.ServeRPC(m, config.Master)
 
-	for blockSize := 1; blockSize < 1048576; blockSize *= 2 { // For each block size
+	for blockSize := 1048576; blockSize <= 1048576; blockSize *= 2 { // For each block size
 		config.GiftsBlockSize = blockSize
 
-		for fileSize := 1; fileSize < 1048576; fileSize *= 2 { // For each file size
+		for fileSize := blockSize; fileSize <= blockSize * len(config.Storages); fileSize *= 2 { // For each file size
 			data := make([]byte, fileSize)
 			generate.NewGenerate().Read(data)
 
@@ -310,8 +318,9 @@ func TestBenchmarkClient_ReadOneFile(t *testing.T) {
 					bytesRead := nTotalReads * int64(fileSize)
 					throughputBPS := float64(bytesRead) / (testTime * nTests)
 					throughputMBPS := throughputBPS / 1000000
-					t.Logf("%d,%d,%d,%d: %.2fMB/s", blockSize, fileSize, nReplicas, nClients, throughputMBPS)
-
+					result := fmt.Sprintf("%d,%d,%d,%d: %.2fMB/s", blockSize, fileSize, nReplicas, nClients, throughputMBPS)
+					writer.WriteString(result + "\n")
+					writer.Flush()
 				}
 			}
 		}
