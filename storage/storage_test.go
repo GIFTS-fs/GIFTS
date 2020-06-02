@@ -308,5 +308,4 @@ func TestBenchmarkStorage_Get(t *testing.T) {
 		writer.WriteString(msg + "\n")
 		writer.Flush()
 	}
-
 }
