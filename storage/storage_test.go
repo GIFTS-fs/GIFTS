@@ -1,7 +1,9 @@
 package storage
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/GIFTS-fs/GIFTS/generate"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
+	"gonum.org/v1/gonum/stat"
 )
 
 func TestStorage_Set(t *testing.T) {
@@ -237,54 +240,73 @@ func TestBenchmarkStorage_Set(t *testing.T) {
 }
 
 func TestBenchmarkStorage_Get(t *testing.T) {
-	t.Skip()
+	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
+	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+	defer file.Close()
+
+	// blockSize, nReaders, stat.Mean(runResults, nil), stat.StdDev(runResults, nil)
+	msg := "Block Size (bytes), # of Readers, Average Throughput (MBps), STD (MBps), %"
+	t.Log(msg)
+	writer.WriteString(msg + "\n")
+
 	g := generate.NewGenerate()
 	nRuns := int64(10)
-	nTestsPerRun := int64(1000)
+	runTime := float64(2)
+	nReaders := 50
+	nBlocks := int64(10000)
 
 	// For block size
-	for blockSize := int64(1); blockSize <= 4096; blockSize *= 2 {
+	for blockSize := int64(1); blockSize <= 8; blockSize *= 2 {
 
-		// For number of readers
-		for nReaders := 1; nReaders <= 100; nReaders++ {
-			s := NewStorage()
-			s.logger.Enabled = false
-			for n := int64(0); n < nTestsPerRun; n++ {
-				id := fmt.Sprintf("id_%d", n)
-				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
-				g.Read(kv.Data)
-				s.Set(&kv, nil)
-			}
+		// Create a set of blocks to read
+		s := NewStorage()
+		s.logger.Enabled = false
+		ids := make([]string, nBlocks)
+		for n := int64(0); n < nBlocks; n++ {
+			id := fmt.Sprintf("id_%d", n)
+			ids[n] = id
 
-			// For nRuns
-			done := make(chan float32, nReaders)
-			runThroughput := float32(0)
-			for run := int64(0); run < nRuns; run++ {
-
-				for reader := 0; reader < nReaders; reader++ {
-					go func() {
-						// For nTestsPerRun
-						testElapsed := int64(0)
-						data := new(gifts.Block)
-						for testRun := int64(0); testRun < nTestsPerRun; testRun++ {
-							id := fmt.Sprintf("id_%d", testRun)
-
-							startTime := time.Now()
-							s.Get(id, data)
-							testElapsed += time.Since(startTime).Nanoseconds()
-						}
-
-						done <- 1000 * float32(blockSize) / float32(testElapsed/nTestsPerRun)
-					}()
-				}
-
-				for reader := 0; reader < nReaders; reader++ {
-					runThroughput += <-done
-				}
-
-			}
-
-			t.Logf("Block size (%d), readers(%d): %.2f", blockSize, nReaders, runThroughput/float32(nRuns))
+			kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
+			g.Read(kv.Data)
+			s.Set(&kv, nil)
 		}
+
+		// For nRuns
+		done := make(chan float64, nReaders)
+		runResults := make([]float64, 0)
+		for run := int64(0); run < nRuns; run++ {
+			for reader := 0; reader < nReaders; reader++ {
+				go func() {
+					data := new(gifts.Block)
+					nReads := int64(0)
+
+					startTime := time.Now()
+					for time.Since(startTime).Seconds() < runTime {
+						s.Get(ids[nReads%nBlocks], data)
+						nReads++
+					}
+
+					done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+				}()
+			}
+
+			var testResults float64 = 0
+			for reader := 0; reader < nReaders; reader++ {
+				testResults += <-done
+			}
+
+			runResults = append(runResults, testResults)
+
+		}
+
+		mean := stat.Mean(runResults, nil)
+		stddev := stat.StdDev(runResults, nil)
+		msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
+		t.Log(msg)
+		writer.WriteString(msg + "\n")
+		writer.Flush()
 	}
+
 }
