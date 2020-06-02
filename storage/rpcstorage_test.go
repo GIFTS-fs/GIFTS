@@ -226,10 +226,10 @@ func TestBenchmarkRPCStorage_Set(t *testing.T) {
 
 	s := NewStorage()
 	ServeRPC(s, "localhost:4000")
-	s.logger.Enabled = false
+	s.Logger.Enabled = false
 
 	rpcs := NewRPCStorage("localhost:4000")
-	rpcs.logger.Enabled = false
+	rpcs.Logger.Enabled = false
 
 	for blockSize := int64(2); blockSize <= 65536; blockSize *= 2 {
 		runElapsed := int64(0)
@@ -258,7 +258,7 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 	nTestsPerRun := int64(1000)
 
 	s := NewStorage()
-	s.logger.Enabled = false
+	s.Logger.Enabled = false
 	ServeRPC(s, "localhost:4000")
 
 	// For block size
@@ -284,7 +284,7 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 						testElapsed := int64(0)
 						data := new(gifts.Block)
 						rpcs := NewRPCStorage("localhost:4000")
-						rpcs.logger.Enabled = false
+						rpcs.Logger.Enabled = false
 						for testRun := int64(0); testRun < nTestsPerRun; testRun++ {
 							id := fmt.Sprintf("id_%d", testRun)
 

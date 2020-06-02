@@ -221,7 +221,7 @@ func TestBenchmarkStorage_Set(t *testing.T) {
 		runElapsed := int64(0)
 		for i := int64(0); i < nRuns; i++ {
 			s := NewStorage()
-			s.logger.Enabled = false
+			s.Logger.Enabled = false
 
 			testElapsed := int64(0)
 			for n := int64(0); n < nTestsPerRun; n++ {
@@ -262,7 +262,7 @@ func TestBenchmarkStorage_Get(t *testing.T) {
 
 		// Create a set of blocks to read
 		s := NewStorage()
-		s.logger.Enabled = false
+		s.Logger.Enabled = false
 		ids := make([]string, nBlocks)
 		for n := int64(0); n < nBlocks; n++ {
 			id := fmt.Sprintf("id_%d", n)

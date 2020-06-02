@@ -1,14 +1,18 @@
 package client
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/config"
+	"github.com/GIFTS-fs/GIFTS/generate"
+	"github.com/GIFTS-fs/GIFTS/master"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
@@ -248,4 +252,77 @@ func TestClient_Read(t *testing.T) {
 	ret, err = c.Read("file_2")
 	test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 	test.AF(t, string(ret) == expected, fmt.Sprintf("Expected %q, found %q", expected, ret))
+}
+
+func TestBenchmarkClient_ReadOneFile(t *testing.T) {
+	file, err := os.Create("./results.csv")
+	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
+	writer := bufio.NewWriter(file)
+	defer file.Close()
+
+	var testTime float64 = 2
+	var nTests float64 = 1
+
+	config, err := config.LoadGet("../config/config.json")
+	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
+
+	for _, addr := range config.Storages {
+		s := storage.NewStorage()
+		s.Logger.Enabled = false
+		storage.ServeRPC(s, addr)
+	}
+
+	m := master.NewMaster(config.Storages, config)
+	m.Logger.Enabled = false
+	master.ServeRPC(m, config.Master)
+
+	for blockSize := 1048576; blockSize <= 1048576; blockSize *= 2 { // For each block size
+		config.GiftsBlockSize = blockSize
+
+		for fileSize := blockSize; fileSize <= blockSize*len(config.Storages); fileSize *= 2 { // For each file size
+			data := make([]byte, fileSize)
+			generate.NewGenerate().Read(data)
+
+			for nReplicas := 1; nReplicas <= len(config.Storages); nReplicas++ { // For the number of replicas
+				fName := fmt.Sprintf("file_%d_%d_%d", blockSize, fileSize, nReplicas)
+				err := NewClient([]string{config.Master}, config).Store(fName, uint(nReplicas), data)
+				test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
+
+				for nClients := 50; nClients < 51; nClients++ { // For the number of concurrent clients
+
+					var nTotalReads int64 = 0
+					for test := 0; test < int(nTests); test++ { // For the number of tests per run
+						done := make(chan int64, nClients)
+
+						for nClient := 0; nClient < nClients; nClient++ {
+							go func() {
+								c := NewClient([]string{config.Master}, config)
+								c.Logger.Enabled = false
+								var nReads int64 = 0
+
+								for startTime := time.Now(); time.Since(startTime).Seconds() < testTime; {
+									c.Read(fName)
+									nReads++
+								}
+
+								done <- nReads
+							}()
+						}
+
+						for nClient := 0; nClient < nClients; nClient++ {
+							nTotalReads += <-done
+						}
+
+					}
+
+					bytesRead := nTotalReads * int64(fileSize)
+					throughputBPS := float64(bytesRead) / (testTime * nTests)
+					throughputMBPS := throughputBPS / 1000000
+					result := fmt.Sprintf("%d,%d,%d,%d: %.2fMB/s", blockSize, fileSize, nReplicas, nClients, throughputMBPS)
+					writer.WriteString(result + "\n")
+					writer.Flush()
+				}
+			}
+		}
+	}
 }

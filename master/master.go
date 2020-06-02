@@ -26,7 +26,7 @@ const (
 
 // Master is the master of GIFTS
 type Master struct {
-	logger          *gifts.Logger
+	Logger          *gifts.Logger
 	config          *config.Config
 	fMap            sync.Map
 	storages        []*storage.RPCStorage
@@ -37,7 +37,7 @@ type Master struct {
 // It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
-		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
+		Logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		createClockHand: 0,
 		config:          config,
 	}
@@ -100,7 +100,7 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	// File with the same name already exists
 	if m.fExist(req.Fname) {
 		err := fmt.Errorf("File %q already exists", req.Fname)
-		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		m.Logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
@@ -108,7 +108,7 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	// of the number of Storage nodes.
 	if req.Rfactor > MaxRfactor {
 		err := fmt.Errorf("RFactor %v is too large (> %v)", req.Rfactor, MaxRfactor)
-		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		m.Logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
@@ -128,14 +128,14 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	// storage not already used.
 	if _, loaded := m.fCreate(req.Fname, fm); loaded {
 		err := fmt.Errorf("File %q already created", req.Fname)
-		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		m.Logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
 	// Set the return value
 	*assignments = fm.assignments
 
-	m.logger.Printf("Master.Create(%v) => success", *req)
+	m.Logger.Printf("Master.Create(%v) => success", *req)
 	return nil
 }
 
@@ -147,7 +147,7 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	// Check if the file exists
 	if !found {
 		err := fmt.Errorf("File %q not found", fName)
-		m.logger.Printf("Master.Lookup(%q) => %q", fName, err)
+		m.Logger.Printf("Master.Lookup(%q) => %q", fName, err)
 		return err
 	}
 
@@ -162,6 +162,6 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	defer fm.trafficLock.Unlock()
 	fm.nRead++
 
-	m.logger.Printf("Master.Lookup(%q) => success", fName)
+	m.Logger.Printf("Master.Lookup(%q) => success", fName)
 	return nil
 }
