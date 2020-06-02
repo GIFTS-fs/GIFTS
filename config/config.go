@@ -15,6 +15,8 @@ var (
 // Config holds all configuration data for the system
 type Config struct {
 	GiftsBlockSize int
+	Storages       []string
+	Master         string
 }
 
 // Load the system configuration from the config file

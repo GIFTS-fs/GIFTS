@@ -218,7 +218,7 @@ func TestBenchmarkStorage_Set(t *testing.T) {
 		runElapsed := int64(0)
 		for i := int64(0); i < nRuns; i++ {
 			s := NewStorage()
-			s.logger.Enabled = false
+			s.Logger.Enabled = false
 
 			testElapsed := int64(0)
 			for n := int64(0); n < nTestsPerRun; n++ {
@@ -248,7 +248,7 @@ func TestBenchmarkStorage_Get(t *testing.T) {
 		// For number of readers
 		for nReaders := 1; nReaders <= 100; nReaders++ {
 			s := NewStorage()
-			s.logger.Enabled = false
+			s.Logger.Enabled = false
 			for n := int64(0); n < nTestsPerRun; n++ {
 				id := fmt.Sprintf("id_%d", n)
 				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
