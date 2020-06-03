@@ -1,58 +1,60 @@
 package master
 
 import (
-	"fmt"
 	"math/rand"
-	"strconv"
 
-	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
 // nextStorage to be assigned for a new block,
 // use CLOCK algorithm to simulate LRU with minimum overhead
-func (m *Master) nextStorage() (s *storage.RPCStorage) {
+func (m *Master) nextStorage() (s *storeMeta, idx, nextIdx int) {
 	var addr string
-	m.createClockHand, addr = m.createClockHand+1, m.storages[m.createClockHand]
+	idx, addr = m.createClockHand, m.storages[m.createClockHand]
 
 	si, _ := m.sMap.Load(addr)
-	s = si.(*storeMeta).rpc
+	s = si.(*storeMeta)
 
-	if m.createClockHand == m.nStorage {
-		m.createClockHand = 0
-	}
+	m.createClockHand = clockTick(m.createClockHand, m.nStorage)
+	nextIdx = m.createClockHand
 
 	return
 }
 
 // makeAssignment for the request, assume all arguments are valid to the best knowledge of the caller
-func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assignments []structure.BlockAssign, nReplica int) {
+func (m *Master) makeAssignment(req *structure.FileCreateReq, nBlocks int) (assignments []*fileBlock, nReplica int, blockAssignments []structure.BlockAssign) {
 	nReplica = int(req.Rfactor)
-	if uint(nReplica) != req.Rfactor {
-		panic(fmt.Sprintf("req.Rfactor too large and overflowed int type: %v", req.Rfactor))
-	}
 
+	// cannot create more than nStorage number of replicas
 	if nReplica > m.nStorage {
 		nReplica = m.nStorage
 	}
 
-	assignments = make([]structure.BlockAssign, nBlocks)
+	assignments = make([]*fileBlock, nBlocks)
+	blockAssignments = make([]structure.BlockAssign, nBlocks)
 
 	// Policy 1: Random
-	// TODO
+	// Discarded
 
-	// Policy 2: LRU
+	// Policy 2: Least load
+	// (sorted by sum(traffic counter) for all files stored, break ties using nBlocks stored etc.)
 	// TODO
 
 	// Policy 3: CLOCK
 	for i := range assignments {
-		// WARN: very innocent way to make BlockID
-		assignments[i].BlockID = req.Fname + strconv.FormatInt(int64(i), 10)
+		bID := nameBlock(req.Fname, i)
+		assignments[i] = newFileBlock(bID)
+		blockAssignments[i].BlockID = bID
 		for j := 0; j < nReplica; j++ {
 			// uniqueness of each replica is ensured by
 			// the if check above, that ensures nReplica
 			// is at most the number of storages
-			assignments[i].Replicas = append(assignments[i].Replicas, m.nextStorage().Addr)
+			store, idx, nextIdx := m.nextStorage()
+			assignments[i].clockEnd = idx
+			assignments[i].clockBeg = nextIdx
+			assignments[i].replicas = append(assignments[i].replicas, store)
+			assignments[i].rMap[store.Addr] = store
+			blockAssignments[i].Replicas = append(blockAssignments[i].Replicas, store.Addr)
 		}
 	}
 
@@ -66,14 +68,14 @@ func (m *Master) pickReadReplica(fm *fileMeta) (assignment []structure.BlockAssi
 	for i, completeAssignment := range fm.assignments {
 		assignment[i].BlockID = completeAssignment.BlockID
 
-		nReplica := len(completeAssignment.Replicas)
+		nReplica := len(completeAssignment.replicas)
 		if nReplica <= 0 {
 			continue
 		}
 
 		// Policy 1: (badly) randomly pick one
 		pick := rand.Intn(nReplica)
-		assignment[i].Replicas = []string{completeAssignment.Replicas[pick]}
+		assignment[i].Replicas = []string{completeAssignment.replicas[pick].Addr}
 
 		// Policy 2: LRU
 		// TODO

@@ -8,15 +8,24 @@ import (
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
-// assignedBlock keeps track of assignment information per block
-type assignedBlock struct {
-	BlockID string
+// fileBlock keeps track of assignment information per block
+type fileBlock struct {
+	BlockID  string
+	replicas []*storeMeta
+
 	// addr -> *storeMeta
-	replicas map[string]*storeMeta
+	rMap map[string]*storeMeta
 
 	// Policy 1: Clock
 	clockBeg int
 	clockEnd int
+}
+
+func newFileBlock(bID string) *fileBlock {
+	return &fileBlock{BlockID: bID, rMap: make(map[string]*storeMeta)}
+}
+
+func (ab *fileBlock) clockNext() {
 }
 
 type fileMeta struct {
@@ -27,8 +36,8 @@ type fileMeta struct {
 	nBlocks int    // save the compution
 	rFactor uint   // how important the user thinks this file is
 
-	nReplica    int                     // real number of replica
-	assignments []structure.BlockAssign // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) >= 1
+	nReplica    int          // real number of replica
+	assignments []*fileBlock // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) >= 1
 
 	trafficLock    sync.Mutex
 	trafficCounter *algorithm.DecayCounter // expontionally decaying read counter
@@ -38,10 +47,11 @@ type fileMeta struct {
 // either because a concurrent create or already exists.
 // Acts like an once constructor for a fname.
 // WARN: loaded=true does not mean the other thread finished the initialization
-func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (fm *fileMeta, loaded bool) {
+// TODO: not return fm since it's not used by caller
+func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (blockAssignments []structure.BlockAssign, loaded bool) {
 	fi, loaded := m.fMap.LoadOrStore(fname, &fileMeta{})
 
-	fm = fi.(*fileMeta)
+	fm := fi.(*fileMeta)
 	if loaded {
 		return
 	}
@@ -53,7 +63,7 @@ func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (fm *fileMe
 	fm.fSize = req.Fsize
 	fm.nBlocks = nBlocks
 	fm.rFactor = req.Rfactor
-	fm.assignments, fm.nReplica = m.makeAssignment(req, nBlocks)
+	fm.assignments, fm.nReplica, blockAssignments = m.makeAssignment(req, nBlocks)
 	fm.trafficCounter = algorithm.NewDecayCounter(m.config.TrafficDecayCounterHalfLife)
 	fm.trafficCounter.Reset()
 

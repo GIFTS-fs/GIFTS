@@ -2,6 +2,7 @@ package master
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -277,9 +278,9 @@ func TestMaster_Create(t *testing.T) {
 
 	// Requested RFactor is too large
 	fName = "large-RFactor"
-	request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: 257}
+	request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: math.MaxUint64/2 + 1}
 	err = m.Create(&request, &assignments)
-	af(err != nil, "Master should not accept RFactor > 257")
+	af(err != nil, "Master should not accept RFactor that will overflow int")
 
 	// File with same name already exists
 	fName = "duplicate"

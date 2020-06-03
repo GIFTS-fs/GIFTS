@@ -6,27 +6,31 @@ import (
 	"github.com/GIFTS-fs/GIFTS/storage"
 )
 
-// assignedBlocks of the file to a storage
-type assignedBlocks struct {
+// blockFile of the file to a storage
+type blockFile struct {
 	fm       *fileMeta
 	blockIDs map[string]bool // a storage can store multiple blocks for one file
 }
 
-func (ab *assignedBlocks) addBlock(blockID string) {
+func newBlockFile(fm *fileMeta) *blockFile {
+	return &blockFile{fm: fm, blockIDs: make(map[string]bool)}
+}
+
+func (ab *blockFile) addBlock(blockID string) {
 	ab.blockIDs[blockID] = true
 }
 
-func (ab *assignedBlocks) rmBlock(blockID string) {
+func (ab *blockFile) rmBlock(blockID string) {
 	delete(ab.blockIDs, blockID)
 }
 
-func (ab *assignedBlocks) hasBlock(blockID string) bool {
+func (ab *blockFile) hasBlock(blockID string) bool {
 	b, ok := ab.blockIDs[blockID]
 	return ok && b
 }
 
 // nBlocks number of blocks stored for this file
-func (ab *assignedBlocks) nBlocks() int {
+func (ab *blockFile) nBlocks() int {
 	return len(ab.blockIDs)
 }
 
@@ -36,14 +40,14 @@ type storeMeta struct {
 
 	assignmentLock sync.Mutex
 	nBlocks        int // number of blocks assigned
-	storedFiles    map[string]assignedBlocks
+	storedFiles    map[string]blockFile
 }
 
 func newStoreMeta(addr string) *storeMeta {
 	s := &storeMeta{
 		Addr:        addr,
 		rpc:         storage.NewRPCStorage(addr),
-		storedFiles: make(map[string]assignedBlocks),
+		storedFiles: make(map[string]blockFile),
 	}
 	return s
 }

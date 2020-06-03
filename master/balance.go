@@ -2,7 +2,8 @@ package master
 
 // detectUnbalance based on the policy,
 // return a slice of fMeta that are considered unbalanced
-func (m *Master) detectUnbalance() (unbalanced []*fileMeta) {
+// and can be balanced
+func (m *Master) detectUnbalance() (toBalance []*fileMeta) {
 	m.trafficLock.Lock()
 	// currentMedian must be read-only after the critical section
 	currentMedian := m.trafficMedian.Median()
@@ -26,26 +27,11 @@ func (m *Master) detectUnbalance() (unbalanced []*fileMeta) {
 		// Policy 1: reference count / number of replications > median reference count / number of storage
 		if tempature/float64(fm.nReplica) > currentMedian/float64(m.nStorage) {
 			m.logger.Printf("balance Policy 1 caught: %v", fm)
-			unbalanced = append(unbalanced, fm)
+			toBalance = append(toBalance, fm)
 		}
 
 		return true
 	})
-
-	return
-}
-
-// nextBalanceStorage to try based on Clock algorithm
-func (m *Master) nextBalanceStorage() (s *storeMeta) {
-	var addr string
-	m.balanceClockHand, addr = m.balanceClockHand+1, m.storages[m.balanceClockHand]
-
-	si, _ := m.sMap.Load(addr)
-	s = si.(*storeMeta)
-
-	if m.balanceClockHand == m.nStorage {
-		m.balanceClockHand = 0
-	}
 
 	return
 }
@@ -80,9 +66,9 @@ func (m *Master) balance() {
 	defer func() { m.isBalancing = false }()
 	m.isBalancing = true
 
-	unbalanced := m.detectUnbalance()
+	toBalance := m.detectUnbalance()
 
-	for _, ub := range unbalanced {
+	for _, ub := range toBalance {
 		_ = ub
 		ub.nReplica++
 		// TODO: update assignments.Replica to include the new enlistment

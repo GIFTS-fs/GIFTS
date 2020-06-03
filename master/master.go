@@ -115,18 +115,23 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 		return err
 	}
 
-	var fm *fileMeta
+	if int(req.Rfactor) < 0 {
+		err := fmt.Errorf("req.Rfactor too large and overflowed int type: %v", req.Rfactor)
+		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		return err
+	}
+
 	var loaded bool
+	var blockAssignments []structure.BlockAssign
 
 	// Create one and only one fMeta for each file
-	if fm, loaded = m.fCreate(req.Fname, req); loaded {
+	if blockAssignments, loaded = m.fCreate(req.Fname, req); loaded {
 		err := fmt.Errorf("File %q already created", req.Fname)
 		m.logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
-	// Set the return value
-	*assignments = fm.assignments
+	*assignments = blockAssignments
 
 	m.logger.Printf("Master.Create(%v) => success", *req)
 	return nil
