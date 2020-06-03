@@ -68,9 +68,9 @@ func (m *Master) background() {
 	}
 }
 
-// ServeRPC makes the Master accessible via RPC
+// ServeRPCAsync makes the Master accessible via RPC
 // at the specified IP address and port.
-func ServeRPC(m *Master, addr string) (err error) {
+func ServeRPCAsync(m *Master, addr string) (err error) {
 	server := rpc.NewServer()
 
 	err = server.RegisterName("Master", m)
@@ -91,6 +91,33 @@ func ServeRPC(m *Master, addr string) (err error) {
 
 	// Serve the Master at the specified IP address and port
 	go http.Serve(l, mux)
+
+	return
+}
+
+// ServeRPCSync makes the Master accessible via RPC at the specified IP
+// address and port.  Blocks and does not return.
+func ServeRPCSync(m *Master, addr string) (err error) {
+	server := rpc.NewServer()
+
+	err = server.RegisterName("Master", m)
+	if err != nil {
+		return
+	}
+
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle(RPCPathMaster, server)
+
+	// Start Master's background tasks
+	go m.background()
+
+	// Serve the Master at the specified IP address and port
+	http.Serve(l, mux)
 
 	return
 }

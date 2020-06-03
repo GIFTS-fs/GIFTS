@@ -18,7 +18,7 @@ import (
 func TestRPCStorage_Set(t *testing.T) {
 	t.Parallel()
 	s := NewStorage()
-	ServeRPC(s, "localhost:3000")
+	ServeRPCAsync(s, "localhost:3000")
 
 	// Set new data
 	rpcs := NewRPCStorage("localhost:3000")
@@ -79,7 +79,7 @@ func TestRPCStorage_Set(t *testing.T) {
 func TestRPCStorage_Get(t *testing.T) {
 	t.Parallel()
 	s := NewStorage()
-	ServeRPC(s, "localhost:3001")
+	ServeRPCAsync(s, "localhost:3001")
 
 	// Attempt to get a missing ID
 	t.Log("TestStorage_Get: Starting test #1")
@@ -140,11 +140,11 @@ func TestRPCStorage_Migrate(t *testing.T) {
 
 	s1 := NewStorage()
 	s1.blocks.Store("valid_id", gifts.Block("Hello World"))
-	ServeRPC(s1, "localhost:3200")
+	ServeRPCAsync(s1, "localhost:3200")
 	rs := NewRPCStorage("localhost:3200")
 
 	s2 := NewStorage()
-	ServeRPC(s2, "localhost:3201")
+	ServeRPCAsync(s2, "localhost:3201")
 
 	// Invalid block ID
 	t.Logf("TestStorage_Migrate: Starting test #1")
@@ -175,7 +175,7 @@ func TestRPCStorage_Migrate(t *testing.T) {
 func TestRPCStorage_Unset(t *testing.T) {
 	t.Parallel()
 	s := NewStorage()
-	ServeRPC(s, "localhost:3002")
+	ServeRPCAsync(s, "localhost:3002")
 
 	// Missing ID
 	t.Log("TestStorage_Set: Starting test #1")
@@ -229,7 +229,7 @@ func TestBenchmarkRPCStorage_Set(t *testing.T) {
 	nTestsPerRun := int64(50000)
 
 	s := NewStorage()
-	ServeRPC(s, "localhost:4000")
+	ServeRPCAsync(s, "localhost:4000")
 	s.Logger.Enabled = false
 
 	rpcs := NewRPCStorage("localhost:4000")
@@ -278,7 +278,7 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 
 	s := NewStorage()
 	s.Logger.Enabled = false
-	ServeRPC(s, config.Storages[0])
+	ServeRPCAsync(s, config.Storages[0])
 
 	// For block size
 	for blockSize := int64(1); blockSize <= 131072; blockSize *= 2 {

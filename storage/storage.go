@@ -31,9 +31,10 @@ func NewStorage() *Storage {
 	}
 }
 
-// ServeRPC makes the raw Storage accessible via RPC at the specified IP
-// address and port.
-func ServeRPC(s *Storage, addr string) (err error) {
+// ServeRPCAsync makes the raw Storage accessible via RPC at the specified IP
+// address and port.  It internally starts the server in a go routine and
+// returns.
+func ServeRPCAsync(s *Storage, addr string) (err error) {
 	server := rpc.NewServer()
 
 	err = server.Register(s)
@@ -54,6 +55,32 @@ func ServeRPC(s *Storage, addr string) (err error) {
 	s.Logger.Printf("ServeRPC(%q) => success", addr)
 
 	go http.Serve(listener, mux)
+	return
+}
+
+// ServeRPCSync makes the raw Storage accessible via RPC at the specified IP
+// address and port.  It blocks and does not return.
+func ServeRPCSync(s *Storage, addr string) (err error) {
+	server := rpc.NewServer()
+
+	err = server.Register(s)
+	if err != nil {
+		s.Logger.Printf("ServeRPC(%q) => %v", addr, err)
+		return
+	}
+
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		s.Logger.Printf("ServeRPC(%q) => %v", addr, err)
+		return
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle(RPCPathStorage, server)
+
+	s.Logger.Printf("ServeRPC(%q) => success", addr)
+
+	http.Serve(listener, mux)
 	return
 }
 

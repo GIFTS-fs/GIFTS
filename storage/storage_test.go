@@ -135,7 +135,7 @@ func TestStorage_Migrate(t *testing.T) {
 	var err error
 
 	rs := NewStorage()
-	ServeRPC(rs, "localhost:3100")
+	ServeRPCAsync(rs, "localhost:3100")
 
 	// Invalid block ID
 	t.Logf("TestStorage_Migrate: Starting test #1")

@@ -34,8 +34,8 @@ func TestClient_Store(t *testing.T) {
 	addr2 := "localhost:3004"
 	s1 := storage.NewStorage()
 	s2 := storage.NewStorage()
-	storage.ServeRPC(s1, addr1)
-	storage.ServeRPC(s2, addr2)
+	storage.ServeRPCAsync(s1, addr1)
+	storage.ServeRPCAsync(s2, addr2)
 
 	var data []byte
 
@@ -152,8 +152,8 @@ func TestClient_Read(t *testing.T) {
 	addr2 := "localhost:3006"
 	s1 := storage.NewStorage()
 	s2 := storage.NewStorage()
-	storage.ServeRPC(s1, addr1)
-	storage.ServeRPC(s2, addr2)
+	storage.ServeRPCAsync(s1, addr1)
+	storage.ServeRPCAsync(s2, addr2)
 
 	var data []byte
 
@@ -269,12 +269,12 @@ func TestBenchmarkClient_ReadOneFile(t *testing.T) {
 	for _, addr := range config.Storages {
 		s := storage.NewStorage()
 		s.Logger.Enabled = false
-		storage.ServeRPC(s, addr)
+		storage.ServeRPCAsync(s, addr)
 	}
 
 	m := master.NewMaster(config.Storages, config)
 	m.Logger.Enabled = false
-	master.ServeRPC(m, config.Master)
+	master.ServeRPCAsync(m, config.Master)
 
 	for blockSize := 1048576; blockSize <= 1048576; blockSize *= 2 { // For each block size
 		config.GiftsBlockSize = blockSize
