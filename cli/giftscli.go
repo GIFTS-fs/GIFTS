@@ -9,8 +9,8 @@ import (
 	"github.com/GIFTS-fs/GIFTS/storage"
 )
 
-func main() {
-	c, _ := config.LoadGet("config/config.json")
+func main() {	
+	c, _ := config.LoadGet("../config/config.json")
 
 	if len(c.Storages) < 1 {
 		panic("You must provide at least one Storage")
@@ -21,10 +21,11 @@ func main() {
 	}
 
 	nStorage := flag.Int("s", -1, "The index of the Storage instance to start")
+	flag.Parse()
 
 	if *nStorage != -1 {
 		if *nStorage < 0 || *nStorage >= len(c.Storages) {
-			panic(fmt.Sprintf("Invalid storage index %d", nStorage))
+			panic(fmt.Sprintf("Invalid storage index %d", *nStorage))
 		}
 
 		fmt.Printf("Starting Storage at address %q\n", c.Storages[*nStorage])
