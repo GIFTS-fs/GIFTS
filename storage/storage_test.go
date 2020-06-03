@@ -289,6 +289,7 @@ func TestBenchmarkStorage_Get(t *testing.T) {
 					}
 
 					done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+					t.Log(len(*data))
 				}()
 			}
 
