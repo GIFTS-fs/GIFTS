@@ -15,3 +15,11 @@ func clockTick(hand int, len int) (newHand int) {
 	}
 	return
 }
+
+func clockTickBack(hand int, len int) (newHand int) {
+	newHand = hand - 1
+	if newHand == 0 {
+		newHand = len - 1
+	}
+	return
+}

@@ -51,6 +51,3 @@ func newStoreMeta(addr string) *storeMeta {
 	}
 	return s
 }
-
-// func (sm *storeMeta) enlist(em *enlistment) {
-// }

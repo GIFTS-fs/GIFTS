@@ -25,13 +25,16 @@ type Master struct {
 
 	// number of storage alive, for 1st phase, it's const
 	nStorage int
+	// list of storages, used mainly by Clock
+	storages []*storeMeta
 	// storage addr -> *storeMeta
 	sMap sync.Map
 
+	// New block placement policy 1: Clock
 	createClockHand int
-	storages        []string
 
 	isBalancing      bool
+	isBalancingLock  sync.Mutex
 	balanceClockHand int
 
 	trafficMedian *algorithm.RunningMedian
@@ -45,17 +48,15 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		nStorage:        len(storageAddr),
 		createClockHand: 0,
-		storages:        make([]string, len(storageAddr)),
+		storages:        make([]*storeMeta, len(storageAddr)),
 		trafficMedian:   algorithm.NewRunningMedian(),
 		config:          config,
 	}
 
-	if copy(m.storages, storageAddr) != len(storageAddr) {
-		return nil
-	}
-
-	for _, addr := range storageAddr {
-		m.sMap.Store(addr, newStoreMeta(addr))
+	for i, addr := range storageAddr {
+		s := newStoreMeta(addr)
+		m.sMap.Store(addr, s)
+		m.storages[i] = s
 	}
 
 	rand.Seed(time.Now().UnixNano())
@@ -152,7 +153,7 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	// Figure out which replicas the client should read from
 	*ret = &structure.FileBlocks{
 		Fsize:       fm.fSize,
-		Assignments: m.pickReadReplica(fm),
+		Assignments: m.lookupReplicas(fm),
 	}
 
 	// Keep track of the number of times this file has been read
