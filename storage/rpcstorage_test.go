@@ -276,13 +276,14 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 	config, err := config.LoadGet("../config/config.json")
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
-	s := NewStorage()
-	s.Logger.Enabled = false
-	ServeRPCAsync(s, config.Storages[0])
+	// s := NewStorage()
+	// s.Logger.Enabled = false
+	// ServeRPCAsync(s, config.Storages[0])
 
 	// For block size
 	for blockSize := int64(1); blockSize <= 131072; blockSize *= 2 {
 		// Create a set of blocks to read
+		rpcs := NewRPCStorage(config.Storages[0])
 		ids := make([]string, nBlocks)
 		for n := int64(0); n < nBlocks; n++ {
 			id := fmt.Sprintf("id_%d", n)
@@ -290,7 +291,8 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 
 			kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
 			g.Read(kv.Data)
-			s.Set(&kv, nil)
+			err := rpcs.Set(&kv)
+			test.AF(t, err == nil, fmt.Sprintf("RPCStorage.Set failed: %v", err))
 		}
 
 		// For nRuns
