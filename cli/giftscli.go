@@ -9,7 +9,7 @@ import (
 	"github.com/GIFTS-fs/GIFTS/storage"
 )
 
-func main() {	
+func main() {
 	c, _ := config.LoadGet("../config/config.json")
 
 	if len(c.Storages) < 1 {
@@ -31,12 +31,14 @@ func main() {
 		fmt.Printf("Starting Storage at address %q\n", c.Storages[*nStorage])
 		go func() {
 			s := storage.NewStorage()
+			s.Logger.Enabled = false
 			storage.ServeRPCSync(s, c.Storages[*nStorage])
 		}()
 	} else {
 		fmt.Printf("Starting Master at address %q\n", c.Master)
 		go func() {
 			m := master.NewMaster(c.Storages, c)
+			m.Logger.Enabled = false
 			master.ServeRPCSync(m, c.Master)
 		}()
 	}

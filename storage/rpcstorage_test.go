@@ -276,14 +276,11 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 	config, err := config.LoadGet("../config/config.json")
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
-	// s := NewStorage()
-	// s.Logger.Enabled = false
-	// ServeRPCAsync(s, config.Storages[0])
-
 	// For block size
 	for blockSize := int64(131072); blockSize <= 1048576; blockSize *= 2 {
 		// Create a set of blocks to read
 		rpcs := NewRPCStorage(config.Storages[0])
+		rpcs.Logger.Enabled = false
 		ids := make([]string, nBlocks)
 		for n := int64(0); n < nBlocks; n++ {
 			id := fmt.Sprintf("id_%d", n)
@@ -302,6 +299,7 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 			for reader := 0; reader < nReaders; reader++ {
 				go func() {
 					rs := NewRPCStorage(config.Storages[0])
+					rs.Logger.Enabled = false
 					data := new(gifts.Block)
 					nReads := int64(0)
 
@@ -312,6 +310,7 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 					}
 
 					done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+					t.Log(len(*data))
 				}()
 			}
 
