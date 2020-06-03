@@ -27,17 +27,17 @@ func TestIntergrationHelloWorld(t *testing.T) {
 	addrStorages := []string{addrStorage1, addrStorage2}
 
 	m := master.NewMaster(addrStorages, config.Get())
-	if master.ServeRPC(m, addrMaster) != nil {
+	if master.ServeRPCAsync(m, addrMaster) != nil {
 		t.Errorf("Failed to serv master %v", m)
 	}
 
 	s1 := storage.NewStorage()
-	if storage.ServeRPC(s1, addrStorage1) != nil {
+	if storage.ServeRPCAsync(s1, addrStorage1) != nil {
 		t.Errorf("Failed to serv storage %v", s1)
 	}
 
 	s2 := storage.NewStorage()
-	if storage.ServeRPC(s2, addrStorage2) != nil {
+	if storage.ServeRPCAsync(s2, addrStorage2) != nil {
 		t.Errorf("Failed to serv storage %v", s2)
 	}
 

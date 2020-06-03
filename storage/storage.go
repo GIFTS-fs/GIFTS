@@ -18,7 +18,7 @@ const (
 
 // Storage is a concurrency-safe key-value store.
 type Storage struct {
-	logger     *gifts.Logger // PRODUCTION: banish this
+	Logger     *gifts.Logger // PRODUCTION: banish this
 	blocks     sync.Map
 	blocksLock sync.RWMutex
 	rpc        sync.Map
@@ -27,39 +27,66 @@ type Storage struct {
 // NewStorage creates a new storage node
 func NewStorage() *Storage {
 	return &Storage{
-		logger: gifts.NewLogger("Storage", "storage", true), // PRODUCTION: banish this
+		Logger: gifts.NewLogger("Storage", "storage", true), // PRODUCTION: banish this
 	}
 }
 
-// ServeRPC makes the raw Storage accessible via RPC at the specified IP
-// address and port.
-func ServeRPC(s *Storage, addr string) (err error) {
+// ServeRPCAsync makes the raw Storage accessible via RPC at the specified IP
+// address and port.  It internally starts the server in a go routine and
+// returns.
+func ServeRPCAsync(s *Storage, addr string) (err error) {
 	server := rpc.NewServer()
 
 	err = server.Register(s)
 	if err != nil {
-		s.logger.Printf("ServeRPC(%q) => %v", addr, err)
+		s.Logger.Printf("ServeRPC(%q) => %v", addr, err)
 		return
 	}
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		s.logger.Printf("ServeRPC(%q) => %v", addr, err)
+		s.Logger.Printf("ServeRPC(%q) => %v", addr, err)
 		return
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle(RPCPathStorage, server)
 
-	s.logger.Printf("ServeRPC(%q) => success", addr)
+	s.Logger.Printf("ServeRPC(%q) => success", addr)
 
 	go http.Serve(listener, mux)
 	return
 }
 
+// ServeRPCSync makes the raw Storage accessible via RPC at the specified IP
+// address and port.  It blocks and does not return.
+func ServeRPCSync(s *Storage, addr string) (err error) {
+	server := rpc.NewServer()
+
+	err = server.Register(s)
+	if err != nil {
+		s.Logger.Printf("ServeRPC(%q) => %v", addr, err)
+		return
+	}
+
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		s.Logger.Printf("ServeRPC(%q) => %v", addr, err)
+		return
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle(RPCPathStorage, server)
+
+	s.Logger.Printf("ServeRPC(%q) => success", addr)
+
+	http.Serve(listener, mux)
+	return
+}
+
 // Set sets the data associated with the block's ID
 func (s *Storage) Set(kv *structure.BlockKV, ignore *bool) error {
-	s.logger.Printf("Storage.Set(%q, %d bytes)", kv.ID, len(kv.Data))
+	s.Logger.Printf("Storage.Set(%q, %d bytes)", kv.ID, len(kv.Data))
 
 	// Store data into block
 	s.blocks.Store(kv.ID, kv.Data)
@@ -78,7 +105,7 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	// Check if ID exists
 	if !found {
 		err := fmt.Errorf("Block with ID %s does not exist", id)
-		s.logger.Printf("Storage.Get(%q) => %q", id, err)
+		s.Logger.Printf("Storage.Get(%q) => %q", id, err)
 		return err
 	}
 
@@ -87,7 +114,7 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	*ret = make([]byte, len(block))
 	copy(*ret, block)
 
-	s.logger.Printf("Storage.Get(%q) => %d bytes", id, len(block))
+	s.Logger.Printf("Storage.Get(%q) => %d bytes", id, len(block))
 	return nil
 }
 
@@ -101,7 +128,7 @@ func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
 	// Check if ID exists
 	if !found {
 		err := fmt.Errorf("Block with ID %q does not exist", kv.ID)
-		s.logger.Printf("Storage.Migrate(%q, %q) => %q", kv.ID, kv.Dest, err)
+		s.Logger.Printf("Storage.Migrate(%q, %q) => %q", kv.ID, kv.Dest, err)
 		return err
 	}
 
@@ -109,11 +136,11 @@ func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
 	rs, _ := s.rpc.LoadOrStore(kv.Dest, NewRPCStorage(kv.Dest))
 	blockKV := structure.BlockKV{ID: kv.ID, Data: block.(gifts.Block)}
 	if err := rs.(*RPCStorage).Set(&blockKV); err != nil {
-		s.logger.Printf("Storage.Migrate(%q, %q) => %v", kv.ID, kv.Dest, err)
+		s.Logger.Printf("Storage.Migrate(%q, %q) => %v", kv.ID, kv.Dest, err)
 		return err
 	}
 
-	s.logger.Printf("Storage.Migrate(%q, %q) => success", kv.ID, kv.Dest)
+	s.Logger.Printf("Storage.Migrate(%q, %q) => success", kv.ID, kv.Dest)
 	return nil
 }
 
@@ -125,13 +152,13 @@ func (s *Storage) Unset(id string, ignore *bool) error {
 	// Check if ID exists
 	if !found {
 		err := fmt.Errorf("Block with ID %s does not exist", id)
-		s.logger.Printf("Storage.Unset(%q) => %q", id, err)
+		s.Logger.Printf("Storage.Unset(%q) => %q", id, err)
 		return err
 	}
 
 	// Delete block
 	s.blocks.Delete(id)
 
-	s.logger.Printf("Storage.Unset(%q) => success", id)
+	s.Logger.Printf("Storage.Unset(%q) => success", id)
 	return nil
 }
