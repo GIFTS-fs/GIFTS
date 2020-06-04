@@ -1,4 +1,6 @@
 {
+    "MasterRebalanceIntervalSec": 10,
+	"TrafficDecayCounterHalfLife": 5000.0,
     "GiftsBlockSize": 8192,
     "Storages": [
         "localhost:30506"
