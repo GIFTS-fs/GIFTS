@@ -240,6 +240,7 @@ func TestBenchmarkStorage_Set(t *testing.T) {
 }
 
 func TestBenchmarkStorage_Get(t *testing.T) {
+	t.Skip()
 	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
 	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
 	writer := bufio.NewWriter(file)
