@@ -15,7 +15,7 @@ type RPCCall func(*rpc.Client) error
 // as long as the server at addr is alive
 // without worrying about the liveness of the underneath connection
 type RPCClient struct {
-	// logger *gifts.Logger
+	// logger *Logger
 	addr string
 	path string
 	conn *rpc.Client // will connect on first call
@@ -23,7 +23,7 @@ type RPCClient struct {
 
 // NewRPCClient constructor for RPCFactory
 func NewRPCClient(addr string, path string) *RPCClient {
-	// return &RPCClient{logger: gifts.NewLogger("RPCClient", addr, false), addr: addr, path: path}
+	// return &RPCClient{logger: NewLogger("RPCClient", addr, false), addr: addr, path: path}
 	return &RPCClient{addr: addr, path: path}
 }
 

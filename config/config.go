@@ -4,8 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 )
+
+// GIFTSDefaultConfigPath in current directory
+func GIFTSDefaultConfigPath() string {
+	return filepath.Join("config.json")
+}
 
 var (
 	config     *Config
@@ -15,6 +21,8 @@ var (
 // Config holds all configuration data for the system
 type Config struct {
 	GiftsBlockSize int
+	Storages       []string
+	Master         string
 }
 
 // Load the system configuration from the config file
