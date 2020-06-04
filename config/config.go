@@ -4,8 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 )
+
+// GIFTSDefaultConfigPath in current directory
+func GIFTSDefaultConfigPath() string {
+	return filepath.Join("config.json")
+}
 
 var (
 	config     *Config

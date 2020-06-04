@@ -37,7 +37,7 @@ type Master struct {
 // It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
-		Logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
+		Logger:          gifts.NewLogger("Master", "master", false), // PRODUCTION: banish this
 		createClockHand: 0,
 		config:          config,
 	}
@@ -68,10 +68,18 @@ func (m *Master) background() {
 	}
 }
 
-// ServeRPCAsync makes the Master accessible via RPC
-// at the specified IP address and port.
-func ServeRPCAsync(m *Master, addr string) (err error) {
+// ServeRPCBlock makes the Master accessible via RPC at the specified IP
+// address and port.  Blocks and does not return.
+func ServeRPCBlock(m *Master, addr string, readyChan chan bool) (err error) {
 	server := rpc.NewServer()
+	defer func() {
+		if readyChan != nil {
+			select {
+			case readyChan <- false:
+			default:
+			}
+		}
+	}()
 
 	err = server.RegisterName("Master", m)
 	if err != nil {
@@ -88,37 +96,25 @@ func ServeRPCAsync(m *Master, addr string) (err error) {
 
 	// Start Master's background tasks
 	go m.background()
+	if readyChan != nil {
+		readyChan <- true
+		readyChan = nil
+	}
 
 	// Serve the Master at the specified IP address and port
-	go http.Serve(l, mux)
-
-	return
+	return http.Serve(l, mux)
 }
 
-// ServeRPCSync makes the Master accessible via RPC at the specified IP
-// address and port.  Blocks and does not return.
-func ServeRPCSync(m *Master, addr string) (err error) {
-	server := rpc.NewServer()
-
-	err = server.RegisterName("Master", m)
-	if err != nil {
-		return
+// ServeRPC makes the Master accessible via RPC
+// at the specified IP address and port.
+func ServeRPC(m *Master, addr string) (err error) {
+	readyChan := make(chan bool)
+	go func() {
+		err = ServeRPCBlock(m, addr, readyChan)
+	}()
+	if !<-readyChan && err == nil {
+		err = fmt.Errorf("Master %v at %q not ready", m, addr)
 	}
-
-	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		return
-	}
-
-	mux := http.NewServeMux()
-	mux.Handle(RPCPathMaster, server)
-
-	// Start Master's background tasks
-	go m.background()
-
-	// Serve the Master at the specified IP address and port
-	http.Serve(l, mux)
-
 	return
 }
 

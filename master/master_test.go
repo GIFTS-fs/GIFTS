@@ -131,7 +131,7 @@ func TestMasterRPCEmpty(t *testing.T) {
 	}
 
 	mmEmpty := NewMaster([]string{}, config.Get())
-	ServeRPCAsync(mmEmpty, "localhost:4001")
+	ServeRPC(mmEmpty, "localhost:4001")
 	mEmpty := NewConn("localhost:4001")
 
 	var err error
@@ -190,7 +190,7 @@ func TestMasterRPCOne(t *testing.T) {
 	}
 
 	mmOne := NewMaster([]string{"s1"}, config.Get())
-	ServeRPCAsync(mmOne, "localhost:4002")
+	ServeRPC(mmOne, "localhost:4002")
 	mOne := NewConn("localhost:4002")
 
 	var err error

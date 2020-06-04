@@ -22,7 +22,7 @@ type Client struct {
 // NewClient creates a new GIFTS client
 func NewClient(masters []string, config *config.Config) *Client {
 	c := Client{}
-	c.Logger = gifts.NewLogger("Client", "end-user", true) // PRODUCTION: banish this
+	c.Logger = gifts.NewLogger("Client", "end-user", false) // PRODUCTION: banish this
 	c.config = config
 	c.master = master.NewConn(masters[0]) // WARN: hard-code for single master
 	return &c

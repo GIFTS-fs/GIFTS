@@ -14,6 +14,19 @@ import (
 	"gonum.org/v1/gonum/stat"
 )
 
+func TestStorage_Block(t *testing.T) {
+	addr := "localhost:12345"
+	s := NewStorage()
+	err := ServeRPC(s, addr)
+	if err != nil {
+		t.Fatalf("First one should success: %v\n", err)
+	}
+	err = ServeRPC(s, addr)
+	if err == nil {
+		t.Fatalf("Second one should fail: %v\n", err)
+	}
+}
+
 func TestStorage_Set(t *testing.T) {
 	t.Parallel()
 
@@ -135,7 +148,7 @@ func TestStorage_Migrate(t *testing.T) {
 	var err error
 
 	rs := NewStorage()
-	ServeRPCAsync(rs, "localhost:3100")
+	ServeRPC(rs, "localhost:3100")
 
 	// Invalid block ID
 	t.Logf("TestStorage_Migrate: Starting test #1")
