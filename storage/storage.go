@@ -27,14 +27,15 @@ type Storage struct {
 // NewStorage creates a new storage node
 func NewStorage() *Storage {
 	return &Storage{
-		Logger: gifts.NewLogger("Storage", "storage", false), // PRODUCTION: banish this
+		Logger: gifts.NewLogger("Storage", "local", false), // PRODUCTION: banish this
 	}
 }
 
 // ServeRPCBlock makes the raw Storage accessible via RPC at the specified IP
 // address and port.  It blocks and does not return.
 func ServeRPCBlock(s *Storage, addr string, readyChan chan bool) (err error) {
-	server := rpc.NewServer()
+	s.Logger = gifts.NewLogger("Storage", addr, s.Logger.Enabled) // PRODUCTION: banish this
+
 	defer func() {
 		if readyChan != nil {
 			select {
@@ -44,6 +45,7 @@ func ServeRPCBlock(s *Storage, addr string, readyChan chan bool) (err error) {
 		}
 	}()
 
+	server := rpc.NewServer()
 	err = server.Register(s)
 	if err != nil {
 		s.Logger.Printf("ServeRPC(%q) => %v", addr, err)

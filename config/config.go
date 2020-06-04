@@ -26,6 +26,7 @@ type Config struct {
 	GiftsBlockSize              int
 	Storages                    []string
 	Master                      string
+	DynamicReplicationEnabled   bool
 }
 
 // Load the system configuration from the config file

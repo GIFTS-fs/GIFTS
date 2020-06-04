@@ -45,7 +45,7 @@ type Master struct {
 // It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
-		Logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
+		Logger:          gifts.NewLogger("Master", "local", false), // PRODUCTION: banish this
 		nStorage:        len(storageAddr),
 		createClockHand: 0,
 		storages:        make([]*storeMeta, len(storageAddr)),
@@ -69,13 +69,15 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 // 1. periodically attempt to rebalance load across storage
 func (m *Master) background() {
 	// TODO: make the interval dynamic based on the traffic and number of files?
-	tickerRebalance := time.NewTicker(time.Second * m.config.MasterRebalanceIntervalSec)
-	defer tickerRebalance.Stop()
+	if m.config.DynamicReplicationEnabled {
+		tickerRebalance := time.NewTicker(time.Second * m.config.MasterRebalanceIntervalSec)
+		defer tickerRebalance.Stop()
 
-	for {
-		select {
-		case <-tickerRebalance.C:
-			go m.balance()
+		for {
+			select {
+			case <-tickerRebalance.C:
+				go m.balance()
+			}
 		}
 	}
 }
@@ -83,6 +85,8 @@ func (m *Master) background() {
 // ServeRPCBlock makes the Master accessible via RPC at the specified IP
 // address and port.  Blocks and does not return.
 func ServeRPCBlock(m *Master, addr string, readyChan chan bool) (err error) {
+	m.Logger = gifts.NewLogger("Master", addr, m.Logger.Enabled) // PRODUCTION: banish this
+
 	server := rpc.NewServer()
 	defer func() {
 		if readyChan != nil {
@@ -187,11 +191,13 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 		prev, curr := fm.trafficCounter.GetRaw(), fm.trafficCounter.Hit()
 		fm.trafficLock.Unlock()
 
+		m.Logger.Printf("DEBUG: trafficLock for %q: prev: %v curr: %v\n", fm.fName, prev, curr)
+
 		m.trafficLock.Lock()
 		m.trafficMedian.Update(prev, curr)
 		m.trafficLock.Unlock()
 	}()
 
-	m.Logger.Printf("Master.Lookup(%q) => success", fName)
+	m.Logger.Printf("Master.Lookup(%q) => %v", fName, *ret)
 	return nil
 }

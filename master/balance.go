@@ -11,12 +11,16 @@ func (m *Master) detectUnbalance() (toUp, toDown []*fileMeta) {
 	currentMedian := m.trafficMedian.Median()
 	m.trafficLock.Unlock()
 
+	// m.Logger.Printf("DEBUG: currentMedia: %v\n", currentMedian)
+
 	m.fMap.Range(func(key interface{}, value interface{}) bool {
 		fm := value.(*fileMeta)
 
 		fm.trafficLock.Lock()
 		tempature := fm.trafficCounter.Get()
 		fm.trafficLock.Unlock()
+
+		// m.Logger.Printf("DEBUG: temperate for file %q: %v\n", fm.fName, tempature)
 
 		// cannot replicate more
 		if fm.nReplica == m.nStorage {
@@ -75,7 +79,7 @@ func (m *Master) enlistNewReplicas(fm *fileMeta) (enlistments []*enlistment) {
 
 // replicateEnlistment copies blockID from src to dst
 func (m *Master) replicateEnlistment(enlistment *enlistment) error {
-	sm, _ := m.sMap.Load(enlistment.src)
+	sm, _ := m.sMap.Load(enlistment.src.Addr)
 	return sm.(*storeMeta).rpc.Replicate(&structure.ReplicateKV{ID: enlistment.blockID, Dest: enlistment.dst.Addr})
 }
 
@@ -95,7 +99,12 @@ func (m *Master) balance() {
 	m.isBalancing = true
 	m.isBalancingLock.Unlock()
 
+	// m.Logger.Printf("DEBUG: Start balancing!\n")
+
 	toUp, toDown := m.detectUnbalance()
+
+	// m.Logger.Printf("DEBUG: Detected toUP: %v!\n", toUp)
+	// m.Logger.Printf("DEBUG: Detected toDown: %v!\n", toDown)
 
 	// TODO: both enlist and innter loop updates metadata for fileBlocks and fileMeta
 	// need a way to keep the updates atomic (if failure, then no change)
