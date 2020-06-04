@@ -255,6 +255,7 @@ func TestClient_Read(t *testing.T) {
 }
 
 func TestBenchmarkClient_ReadOneFile(t *testing.T) {
+	t.Skip()
 	file, err := os.Create("./results.csv")
 	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
 	writer := bufio.NewWriter(file)
