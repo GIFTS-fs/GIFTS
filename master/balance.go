@@ -28,13 +28,13 @@ func (m *Master) detectUnbalance() (toUp, toDown []*fileMeta) {
 
 		// Unbalance detection policy 1: reference count / number of replications > median reference count / number of storage
 		if tempature/float64(fm.nReplica) > currentMedian/float64(m.nStorage) {
-			m.logger.Printf("balance Policy 1 caught toUp: %v", fm)
+			m.Logger.Printf("balance Policy 1 caught toUp: %v", fm)
 			toUp = append(toUp, fm)
 		}
 
 		// WARN: bad, unnecessary type casting
 		if fm.nReplica > int(fm.rFactor) && tempature/float64(fm.nReplica) < currentMedian/float64(m.nStorage) {
-			m.logger.Printf("balance Policy 1 caught toDown: %v", fm)
+			m.Logger.Printf("balance Policy 1 caught toDown: %v", fm)
 			toDown = append(toDown, fm)
 		}
 
@@ -105,7 +105,7 @@ func (m *Master) balance() {
 		for _, enlistment := range enlistments {
 			if err := m.replicateEnlistment(enlistment); err != nil {
 				// TODO: gracefully and atomically handle the error
-				m.logger.Printf("balance() failed to replicateEnlistment(%v): %v", enlistment, err)
+				m.Logger.Printf("balance() failed to replicateEnlistment(%v): %v", enlistment, err)
 				return
 			}
 			enlistment.fileBlock.addReplica(enlistment.dst)

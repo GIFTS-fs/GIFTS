@@ -10,14 +10,16 @@ import (
 // RPCStorage is a concurrency-safe key-value store accessible via RPC.
 type RPCStorage struct {
 	Addr   string
-	logger *gifts.Logger
+	Logger *gifts.Logger
 	conn   *rpc.Client
 }
 
 // NewRPCStorage creates a client that allows you to access a raw Storage node
 // that is accessible via RPC at the specified address.
 func NewRPCStorage(addr string) *RPCStorage {
-	return &RPCStorage{Addr: addr, logger: gifts.NewLogger("RPCStorage", addr, true)} // PRODUCTION: banish this
+	logger := gifts.NewLogger("RPCStorage", addr, true)
+	logger.Enabled = false
+	return &RPCStorage{Addr: addr, Logger: logger} // PRODUCTION: banish this
 }
 
 func (s *RPCStorage) connect() (err error) {
@@ -49,9 +51,9 @@ func (s *RPCStorage) Set(kv *structure.BlockKV) error {
 	}
 
 	if err == nil {
-		s.logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => success", s.Addr, kv.ID, len(kv.Data))
+		s.Logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => success", s.Addr, kv.ID, len(kv.Data))
 	} else {
-		s.logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => %v", s.Addr, kv.ID, len(kv.Data), err)
+		s.Logger.Printf("%q: RPCStorage.Set(%q, %d bytes) => %v", s.Addr, kv.ID, len(kv.Data), err)
 	}
 
 	return err
@@ -87,9 +89,9 @@ func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 	}
 
 	if err == nil {
-		s.logger.Printf("%q: RPCStorage.Get(%q) => %d bytes", s.Addr, id, len(*ret))
+		s.Logger.Printf("%q: RPCStorage.Get(%q) => %d bytes", s.Addr, id, len(*ret))
 	} else {
-		s.logger.Printf("%q: RPCStorage.Get(%q) => %v", s.Addr, id, err)
+		s.Logger.Printf("%q: RPCStorage.Get(%q) => %v", s.Addr, id, err)
 	}
 
 	return err
@@ -119,9 +121,9 @@ func (s *RPCStorage) Replicate(kv *structure.ReplicateKV) error {
 	}
 
 	if err == nil {
-		s.logger.Printf("%q: RPCStorage.Replicate(%v) => success", s.Addr, kv)
+		s.Logger.Printf("%q: RPCStorage.Replicate(%v) => success", s.Addr, kv)
 	} else {
-		s.logger.Printf("%q: RPCStorage.Replicate(%v) => %v", s.Addr, kv, err)
+		s.Logger.Printf("%q: RPCStorage.Replicate(%v) => %v", s.Addr, kv, err)
 	}
 
 	return err
@@ -151,9 +153,9 @@ func (s *RPCStorage) Unset(id string, ignore *bool) error {
 	}
 
 	if err == nil {
-		s.logger.Printf("%q: RPCStorage.Unset(%q) => success", s.Addr, id)
+		s.Logger.Printf("%q: RPCStorage.Unset(%q) => success", s.Addr, id)
 	} else {
-		s.logger.Printf("%q: RPCStorage.Unset(%q) => %v", s.Addr, id, err)
+		s.Logger.Printf("%q: RPCStorage.Unset(%q) => %v", s.Addr, id, err)
 	}
 
 	return err

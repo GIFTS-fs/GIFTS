@@ -17,7 +17,7 @@ import (
 
 // Master is the master of GIFTS
 type Master struct {
-	logger *gifts.Logger
+	Logger *gifts.Logger
 	config *config.Config
 
 	// file name -> *fileMeta
@@ -45,7 +45,7 @@ type Master struct {
 // It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
-		logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
+		Logger:          gifts.NewLogger("Master", "master", true), // PRODUCTION: banish this
 		nStorage:        len(storageAddr),
 		createClockHand: 0,
 		storages:        make([]*storeMeta, len(storageAddr)),
@@ -80,10 +80,18 @@ func (m *Master) background() {
 	}
 }
 
-// ServeRPC makes the Master accessible via RPC
-// at the specified IP address and port.
-func ServeRPC(m *Master, addr string) (err error) {
+// ServeRPCBlock makes the Master accessible via RPC at the specified IP
+// address and port.  Blocks and does not return.
+func ServeRPCBlock(m *Master, addr string, readyChan chan bool) (err error) {
 	server := rpc.NewServer()
+	defer func() {
+		if readyChan != nil {
+			select {
+			case readyChan <- false:
+			default:
+			}
+		}
+	}()
 
 	err = server.RegisterName("Master", m)
 	if err != nil {
@@ -100,10 +108,25 @@ func ServeRPC(m *Master, addr string) (err error) {
 
 	// Start Master's background tasks
 	go m.background()
+	if readyChan != nil {
+		readyChan <- true
+		readyChan = nil
+	}
 
 	// Serve the Master at the specified IP address and port
-	go http.Serve(l, mux)
+	return http.Serve(l, mux)
+}
 
+// ServeRPC makes the Master accessible via RPC
+// at the specified IP address and port.
+func ServeRPC(m *Master, addr string) (err error) {
+	readyChan := make(chan bool)
+	go func() {
+		err = ServeRPCBlock(m, addr, readyChan)
+	}()
+	if !<-readyChan && err == nil {
+		err = fmt.Errorf("Master %v at %q not ready", m, addr)
+	}
 	return
 }
 
@@ -112,13 +135,13 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	// File with the same name already exists
 	if m.fExist(req.Fname) {
 		err := fmt.Errorf("File %q already exists", req.Fname)
-		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		m.Logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
 	if int(req.Rfactor) < 0 {
 		err := fmt.Errorf("req.Rfactor too large and overflowed int type: %v", req.Rfactor)
-		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		m.Logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
@@ -128,13 +151,13 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 	// Create one and only one fMeta for each file
 	if blockAssignments, loaded = m.fCreate(req.Fname, req); loaded {
 		err := fmt.Errorf("File %q already created", req.Fname)
-		m.logger.Printf("Master.Create(%v) => %q", *req, err)
+		m.Logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
 	*assignments = blockAssignments
 
-	m.logger.Printf("Master.Create(%v) => success", *req)
+	m.Logger.Printf("Master.Create(%v) => success", *req)
 	return nil
 }
 
@@ -146,7 +169,7 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	// Check if the file exists
 	if !found {
 		err := fmt.Errorf("File %q not found", fName)
-		m.logger.Printf("Master.Lookup(%q) => %q", fName, err)
+		m.Logger.Printf("Master.Lookup(%q) => %q", fName, err)
 		return err
 	}
 
@@ -169,6 +192,6 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 		m.trafficLock.Unlock()
 	}()
 
-	m.logger.Printf("Master.Lookup(%q) => success", fName)
+	m.Logger.Printf("Master.Lookup(%q) => success", fName)
 	return nil
 }
