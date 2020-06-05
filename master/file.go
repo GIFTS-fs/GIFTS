@@ -111,8 +111,8 @@ func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (blockAssig
 	fm.trafficCounter = algorithm.NewDecayCounter(m.config.TrafficDecayCounterHalfLife)
 	fm.trafficCounter.Reset()
 
-	defer m.trafficLock.Unlock()
 	m.trafficLock.Lock()
+	defer m.trafficLock.Unlock()
 	m.trafficMedian.Add(fm.trafficCounter.GetRaw())
 
 	return
