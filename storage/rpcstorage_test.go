@@ -256,7 +256,6 @@ func TestBenchmarkRPCStorage_Set(t *testing.T) {
 }
 
 func TestBenchmarkRPCStorage_Get(t *testing.T) {
-	t.Skip()
 	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
 	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
 	writer := bufio.NewWriter(file)
@@ -271,64 +270,65 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 	g := generate.NewGenerate()
 	nRuns := int64(10)
 	runTime := float64(10)
-	nReaders := 50
-	nBlocks := int64(5000)
+	// nReaders := 50
+	nBlocks := int64(1000)
 
 	config, err := config.LoadGet("../config/config.json")
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
 	// For block size
-	for blockSize := int64(131072); blockSize <= 1048576; blockSize *= 2 {
-		// Create a set of blocks to read
-		rpcs := NewRPCStorage(config.Storages[0])
-		rpcs.Logger.Enabled = false
-		ids := make([]string, nBlocks)
-		for n := int64(0); n < nBlocks; n++ {
-			id := fmt.Sprintf("id_%d", n)
-			ids[n] = id
+	for blockSize := int64(1); blockSize <= 1048576; blockSize *= 2 {
+		for nReaders := 20; nReaders <= 20; nReaders++ { // Create a set of blocks to read
+			rpcs := NewRPCStorage(config.Storages[0])
+			rpcs.Logger.Enabled = false
+			ids := make([]string, nBlocks)
+			for n := int64(0); n < nBlocks; n++ {
+				id := fmt.Sprintf("id_%d", n)
+				ids[n] = id
 
-			kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
-			g.Read(kv.Data)
-			err := rpcs.Set(&kv)
-			test.AF(t, err == nil, fmt.Sprintf("RPCStorage.Set failed: %v", err))
-		}
-
-		// For nRuns
-		done := make(chan float64, nReaders)
-		runResults := make([]float64, 0)
-		for run := int64(0); run < nRuns; run++ {
-			for reader := 0; reader < nReaders; reader++ {
-				go func() {
-					rs := NewRPCStorage(config.Storages[0])
-					rs.Logger.Enabled = false
-					data := new(gifts.Block)
-					nReads := int64(0)
-
-					startTime := time.Now()
-					for time.Since(startTime).Seconds() < runTime {
-						rs.Get(ids[nReads%nBlocks], data)
-						nReads++
-					}
-
-					done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
-					t.Log(len(*data))
-				}()
+				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
+				g.Read(kv.Data)
+				err := rpcs.Set(&kv)
+				test.AF(t, err == nil, fmt.Sprintf("RPCStorage.Set failed: %v", err))
 			}
 
-			var testResults float64 = 0
-			for reader := 0; reader < nReaders; reader++ {
-				testResults += <-done
+			// For nRuns
+			done := make(chan float64, nReaders)
+			runResults := make([]float64, 0)
+			for run := int64(0); run < nRuns; run++ {
+				for reader := 0; reader < nReaders; reader++ {
+					go func() {
+						rs := NewRPCStorage(config.Storages[0])
+						rs.Logger.Enabled = false
+						data := new(gifts.Block)
+						nReads := int64(0)
+
+						startTime := time.Now()
+						for time.Since(startTime).Seconds() < runTime {
+							rs.Get(ids[nReads%nBlocks], data)
+							nReads++
+						}
+
+						done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+						t.Log(len(*data))
+					}()
+				}
+
+				var testResults float64 = 0
+				for reader := 0; reader < nReaders; reader++ {
+					testResults += <-done
+				}
+
+				runResults = append(runResults, testResults)
+
 			}
 
-			runResults = append(runResults, testResults)
-
+			mean := stat.Mean(runResults, nil)
+			stddev := stat.StdDev(runResults, nil)
+			msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
+			t.Log(msg)
+			writer.WriteString(msg + "\n")
+			writer.Flush()
 		}
-
-		mean := stat.Mean(runResults, nil)
-		stddev := stat.StdDev(runResults, nil)
-		msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
-		t.Log(msg)
-		writer.WriteString(msg + "\n")
-		writer.Flush()
 	}
 }
