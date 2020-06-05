@@ -254,6 +254,83 @@ func TestClient_Read(t *testing.T) {
 	test.AF(t, string(ret) == expected, fmt.Sprintf("Expected %q, found %q", expected, ret))
 }
 
+func TestBenchmarkClient_Read(t *testing.T) {
+	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
+	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+	defer file.Close()
+
+	// blockSize, nReaders, stat.Mean(runResults, nil), stat.StdDev(runResults, nil)
+	msg := "Block Size (bytes), # of Readers, Average Throughput (MBps), STD (MBps), %"
+	t.Log(msg)
+	writer.WriteString(msg + "\n")
+
+	g := generate.NewGenerate()
+	nRuns := int64(10)
+	runTime := float64(10)
+
+	config, err := config.LoadGet("../config/config.json")
+	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
+
+	// For block size
+	for blockSize := int64(1); blockSize <= 1048576; blockSize *= 2 {
+		for nReaders := 4; nReaders <= 40; nReaders++ { // Create a set of blocks to read
+			// Create a set of blocks to read
+			c := NewClient([]string{config.Master}, config)
+			c.Logger.Enabled = false
+			fNames := make([]string, 1000)
+			for n := int64(0); n < 1000; n++ {
+				fName := fmt.Sprintf("file_%d_%d_%d_%d", blockSize, blockSize, 1, n)
+				fNames[n] = fName
+
+				data := make([]byte, blockSize)
+				g.Read(data)
+
+				err := c.Store(fName, 1, data)
+				test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
+			}
+
+			// For nRuns
+			done := make(chan float64, nReaders)
+			runResults := make([]float64, 0)
+			for run := int64(0); run < nRuns; run++ {
+				for reader := 0; reader < nReaders; reader++ {
+					go func() {
+						client := NewClient([]string{config.Master}, config)
+						var nReads int64 = 0
+						data := make([]byte, blockSize)
+
+						startTime := time.Now()
+						for time.Since(startTime).Seconds() < runTime {
+							data, err = client.Read(fNames[nReads%1000])
+							nReads++
+						}
+
+						done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+						t.Log(len(data))
+					}()
+				}
+
+				var testResults float64 = 0
+				for reader := 0; reader < nReaders; reader++ {
+					testResults += <-done
+				}
+
+				runResults = append(runResults, testResults)
+
+			}
+
+			mean := stat.Mean(runResults, nil)
+			stddev := stat.StdDev(runResults, nil)
+			msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
+			t.Log(msg)
+			writer.WriteString(msg + "\n")
+			writer.Flush()
+		}
+	}
+}
+
 func TestBenchmarkClient_ReadOneFile(t *testing.T) {
 	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
 	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
