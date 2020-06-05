@@ -271,55 +271,67 @@ func TestBenchmarkClient_ReadOneFile(t *testing.T) {
 	g := generate.NewGenerate()
 	var nRuns int64 = 10
 	var runTime float64 = 1
-	var nReaders int = 50
+	// var nReaders int = 50
 	var blockSize int = config.GiftsBlockSize
 
 	for fileSize := blockSize; fileSize <= blockSize*len(config.Storages); fileSize += blockSize { // For each file size
-		data := make([]byte, fileSize)
-		g.Read(data)
-
 		for nReplicas := 1; nReplicas <= len(config.Storages); nReplicas++ { // For the number of replicas
-			fName := fmt.Sprintf("file_%d_%d_%d", blockSize, fileSize, nReplicas)
-			err := NewClient([]string{config.Master}, config).Store(fName, uint(nReplicas), data)
-			test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
 
-			// For nRuns
-			done := make(chan float64, nReaders)
-			runResults := make([]float64, 0)
-			for run := int64(0); run < nRuns; run++ {
-				for reader := 0; reader < nReaders; reader++ {
-					go func() {
-						client := NewClient([]string{config.Master}, config)
-						nReads := 0
-						data := make([]byte, fileSize)
+			// Create a set of blocks to read
+			c := NewClient([]string{config.Master}, config)
+			c.Logger.Enabled = false
+			fNames := make([]string, 1000)
+			for n := int64(0); n < 1000; n++ {
+				fName := fmt.Sprintf("file_%d_%d_%d_%d", blockSize, fileSize, nReplicas, n)
+				fNames[n] = fName
 
-						startTime := time.Now()
-						for time.Since(startTime).Seconds() < runTime {
-							data, err = client.Read(fName)
-							nReads++
-						}
+				data := make([]byte, fileSize)
+				g.Read(data)
 
-						done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
-						t.Log(len(data))
-					}()
-				}
-
-				var testResults float64 = 0
-				for reader := 0; reader < nReaders; reader++ {
-					testResults += <-done
-				}
-
-				runResults = append(runResults, testResults)
-
+				err := c.Store(fName, uint(nReplicas), data)
+				test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
 			}
 
-			mean := stat.Mean(runResults, nil)
-			stddev := stat.StdDev(runResults, nil)
-			msg := fmt.Sprintf("%d, %d, %d, %d, %f, %f, %.1f%%", blockSize, fileSize, nReaders, nReplicas, mean, stddev, 100*stddev/mean)
-			t.Log(msg)
-			writer.WriteString(msg + "\n")
-			writer.Flush()
+			for nReaders := 1; nReaders <= 50; nReaders++ {
 
+				// For nRuns
+				done := make(chan float64, nReaders)
+				runResults := make([]float64, 0)
+				for run := int64(0); run < nRuns; run++ {
+					for reader := 0; reader < nReaders; reader++ {
+						go func() {
+							client := NewClient([]string{config.Master}, config)
+							nReads := 0
+							data := make([]byte, fileSize)
+
+							startTime := time.Now()
+							for time.Since(startTime).Seconds() < runTime {
+								data, err = client.Read(fNames[nReads%1000])
+								nReads++
+							}
+
+							done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+							t.Log(len(data))
+						}()
+					}
+
+					var testResults float64 = 0
+					for reader := 0; reader < nReaders; reader++ {
+						testResults += <-done
+					}
+
+					runResults = append(runResults, testResults)
+
+				}
+
+				mean := stat.Mean(runResults, nil)
+				stddev := stat.StdDev(runResults, nil)
+				msg := fmt.Sprintf("%d, %d, %d, %d, %f, %f, %.1f%%", blockSize, fileSize, nReaders, nReplicas, mean, stddev, 100*stddev/mean)
+				t.Log(msg)
+				writer.WriteString(msg + "\n")
+				writer.Flush()
+
+			}
 		}
 	}
 }
