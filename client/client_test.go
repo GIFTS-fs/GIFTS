@@ -12,10 +12,10 @@ import (
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/generate"
-	"github.com/GIFTS-fs/GIFTS/master"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
+	"gonum.org/v1/gonum/stat"
 )
 
 func TestMain(m *testing.M) {
@@ -255,72 +255,72 @@ func TestClient_Read(t *testing.T) {
 }
 
 func TestBenchmarkClient_ReadOneFile(t *testing.T) {
-	t.Skip()
-	file, err := os.Create("./results.csv")
+	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
 	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
 	writer := bufio.NewWriter(file)
+	defer writer.Flush()
 	defer file.Close()
 
-	var testTime float64 = 2
-	var nTests float64 = 1
+	msg := "Block Size (bytes), File Size (bytes), # of Clients, # of Replicas, Average Throughput (MBps), STD (MBps), %"
+	t.Log(msg)
+	writer.WriteString(msg + "\n")
 
 	config, err := config.LoadGet("../config/config.json")
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
-	for _, addr := range config.Storages {
-		s := storage.NewStorage()
-		storage.ServeRPC(s, addr)
-	}
+	g := generate.NewGenerate()
+	var nRuns int64 = 10
+	var runTime float64 = 1
+	var nReaders int = 50
+	var blockSize int = config.GiftsBlockSize
 
-	m := master.NewMaster(config.Storages, config)
-	master.ServeRPC(m, config.Master)
+	for fileSize := blockSize; fileSize <= blockSize*len(config.Storages); fileSize += blockSize { // For each file size
+		data := make([]byte, fileSize)
+		g.Read(data)
 
-	for blockSize := 1048576; blockSize <= 1048576; blockSize *= 2 { // For each block size
-		config.GiftsBlockSize = blockSize
+		for nReplicas := 1; nReplicas <= len(config.Storages); nReplicas++ { // For the number of replicas
+			fName := fmt.Sprintf("file_%d_%d_%d", blockSize, fileSize, nReplicas)
+			err := NewClient([]string{config.Master}, config).Store(fName, uint(nReplicas), data)
+			test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
 
-		for fileSize := blockSize; fileSize <= blockSize*len(config.Storages); fileSize *= 2 { // For each file size
-			data := make([]byte, fileSize)
-			generate.NewGenerate().Read(data)
+			// For nRuns
+			done := make(chan float64, nReaders)
+			runResults := make([]float64, 0)
+			for run := int64(0); run < nRuns; run++ {
+				for reader := 0; reader < nReaders; reader++ {
+					go func() {
+						client := NewClient([]string{config.Master}, config)
+						nReads := 0
+						data := make([]byte, fileSize)
 
-			for nReplicas := 1; nReplicas <= len(config.Storages); nReplicas++ { // For the number of replicas
-				fName := fmt.Sprintf("file_%d_%d_%d", blockSize, fileSize, nReplicas)
-				err := NewClient([]string{config.Master}, config).Store(fName, uint(nReplicas), data)
-				test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
-
-				for nClients := 50; nClients < 51; nClients++ { // For the number of concurrent clients
-
-					var nTotalReads int64 = 0
-					for test := 0; test < int(nTests); test++ { // For the number of tests per run
-						done := make(chan int64, nClients)
-
-						for nClient := 0; nClient < nClients; nClient++ {
-							go func() {
-								c := NewClient([]string{config.Master}, config)
-								var nReads int64 = 0
-
-								for startTime := time.Now(); time.Since(startTime).Seconds() < testTime; {
-									c.Read(fName)
-									nReads++
-								}
-
-								done <- nReads
-							}()
+						startTime := time.Now()
+						for time.Since(startTime).Seconds() < runTime {
+							data, err = client.Read(fName)
+							nReads++
 						}
 
-						for nClient := 0; nClient < nClients; nClient++ {
-							nTotalReads += <-done
-						}
-
-					}
-
-					bytesRead := nTotalReads * int64(fileSize)
-					throughputBPS := float64(bytesRead) / (testTime * nTests)
-					throughputMBPS := throughputBPS / 1000000
-					result := fmt.Sprintf("%d,%d,%d,%d: %.2fMB/s", blockSize, fileSize, nReplicas, nClients, throughputMBPS)
-					writer.WriteString(result + "\n")
-					writer.Flush()
+						done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+						t.Log(len(data))
+					}()
 				}
+
+				var testResults float64 = 0
+				for reader := 0; reader < nReaders; reader++ {
+					testResults += <-done
+				}
+
+				runResults = append(runResults, testResults)
+
 			}
+
+			mean := stat.Mean(runResults, nil)
+			stddev := stat.StdDev(runResults, nil)
+			msg := fmt.Sprintf("%d, %d, %d, %d, %f, %f, %.1f%%", blockSize, fileSize, nReaders, nReplicas, mean, stddev, 100*stddev/mean)
+			t.Log(msg)
+			writer.WriteString(msg + "\n")
+			writer.Flush()
+
 		}
 	}
+
 }
