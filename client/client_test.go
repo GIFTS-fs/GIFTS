@@ -322,5 +322,4 @@ func TestBenchmarkClient_ReadOneFile(t *testing.T) {
 
 		}
 	}
-
 }
