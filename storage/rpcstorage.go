@@ -27,7 +27,7 @@ func (s *RPCStorage) connect() (err error) {
 	return
 }
 
-// Set sets the data associated with the block's ID
+// Set the data associated with the block's ID
 func (s *RPCStorage) Set(kv *structure.BlockKV) error {
 	var err error
 
@@ -59,7 +59,7 @@ func (s *RPCStorage) Set(kv *structure.BlockKV) error {
 	return err
 }
 
-// Get gets the data associated with the block's ID
+// Get the data associated with the block's ID
 func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 	var err error
 
@@ -97,8 +97,8 @@ func (s *RPCStorage) Get(id string, ret *gifts.Block) error {
 	return err
 }
 
-// Migrate copies the specified block to the destination Storage node
-func (s *RPCStorage) Migrate(kv *structure.MigrateKV) error {
+// Replicate the specified block to the destination Storage node
+func (s *RPCStorage) Replicate(kv *structure.ReplicateKV) error {
 	var err error
 
 	// If the Call returns an error, try reconnecting to the server and making the call again
@@ -111,7 +111,7 @@ func (s *RPCStorage) Migrate(kv *structure.MigrateKV) error {
 		}
 
 		// Perform the call
-		err = s.conn.Call("Storage.Migrate", kv, nil)
+		err = s.conn.Call("Storage.Replicate", kv, nil)
 		if err == nil {
 			break
 		} else if s.conn != nil {
@@ -121,15 +121,15 @@ func (s *RPCStorage) Migrate(kv *structure.MigrateKV) error {
 	}
 
 	if err == nil {
-		s.Logger.Printf("%q: RPCStorage.Migrate(%v) => success", s.Addr, kv)
+		s.Logger.Printf("%q: RPCStorage.Replicate(%v) => success", s.Addr, kv)
 	} else {
-		s.Logger.Printf("%q: RPCStorage.Migrate(%v) => %v", s.Addr, kv, err)
+		s.Logger.Printf("%q: RPCStorage.Replicate(%v) => %v", s.Addr, kv, err)
 	}
 
 	return err
 }
 
-// Unset deletes the data associated with the block's ID
+// Unset the data associated with the block's ID
 func (s *RPCStorage) Unset(id string, ignore *bool) error {
 	var err error
 

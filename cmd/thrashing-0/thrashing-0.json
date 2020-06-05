@@ -1,0 +1,11 @@
+{
+	"DynamicReplicationEnabled": true,
+    "MasterRebalanceIntervalSec": 3,
+	"TrafficDecayCounterHalfLife": 9999999999.0,
+    "GiftsBlockSize": 8192,
+    "Storages": [
+        "localhost:30506",
+        "localhost:30507"
+    ],
+    "Master": "localhost:30505"
+}

@@ -10,41 +10,53 @@ import (
 	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
+	"github.com/GIFTS-fs/GIFTS/algorithm"
 	"github.com/GIFTS-fs/GIFTS/config"
-	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
-)
-
-const (
-	// MaxRfactor limits the value of rfactor,
-	// mere a magic number to prevent uint overlows int
-	MaxRfactor = 256
-
-	// rebalanceIntervalSec
-	rebalanceIntervalSec = 10
 )
 
 // Master is the master of GIFTS
 type Master struct {
-	Logger          *gifts.Logger
-	config          *config.Config
-	fMap            sync.Map
-	storages        []*storage.RPCStorage
+	Logger *gifts.Logger
+	config *config.Config
+
+	// file name -> *fileMeta
+	fMap sync.Map
+
+	// number of storage alive, for 1st phase, it's const
+	nStorage int
+	// list of storages, used mainly by Clock
+	storages []*storeMeta
+	// storage addr -> *storeMeta
+	sMap sync.Map
+
+	// New block placement policy 1: Clock
 	createClockHand int
+
+	isBalancing      bool
+	isBalancingLock  sync.Mutex
+	balanceClockHand int
+
+	trafficMedian *algorithm.RunningMedian
+	trafficLock   sync.Mutex
 }
 
 // NewMaster creates a new GIFTS Master.
 // It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
-		Logger:          gifts.NewLogger("Master", "master", false), // PRODUCTION: banish this
+		Logger:          gifts.NewLogger("Master", "local", false), // PRODUCTION: banish this
+		nStorage:        len(storageAddr),
 		createClockHand: 0,
+		storages:        make([]*storeMeta, len(storageAddr)),
+		trafficMedian:   algorithm.NewRunningMedian(),
 		config:          config,
 	}
 
-	// Store a connection to every Storage node
-	for _, addr := range storageAddr {
-		m.storages = append(m.storages, storage.NewRPCStorage(addr))
+	for i, addr := range storageAddr {
+		s := newStoreMeta(addr)
+		m.sMap.Store(addr, s)
+		m.storages[i] = s
 	}
 
 	rand.Seed(time.Now().UnixNano())
@@ -56,14 +68,16 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 //
 // 1. periodically attempt to rebalance load across storage
 func (m *Master) background() {
-	// TODO: make the interval dynamic?
-	tickerRebalance := time.NewTicker(time.Second * rebalanceIntervalSec)
-	defer tickerRebalance.Stop()
+	// TODO: make the interval dynamic based on the traffic and number of files?
+	if m.config.DynamicReplicationEnabled {
+		tickerRebalance := time.NewTicker(time.Second * m.config.MasterRebalanceIntervalSec)
+		defer tickerRebalance.Stop()
 
-	for {
-		select {
-		case <-tickerRebalance.C:
-			go m.balance()
+		for {
+			select {
+			case <-tickerRebalance.C:
+				go m.balance()
+			}
 		}
 	}
 }
@@ -71,6 +85,8 @@ func (m *Master) background() {
 // ServeRPCBlock makes the Master accessible via RPC at the specified IP
 // address and port.  Blocks and does not return.
 func ServeRPCBlock(m *Master, addr string, readyChan chan bool) (err error) {
+	m.Logger = gifts.NewLogger("Master", addr, m.Logger.Enabled) // PRODUCTION: banish this
+
 	server := rpc.NewServer()
 	defer func() {
 		if readyChan != nil {
@@ -127,36 +143,23 @@ func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.B
 		return err
 	}
 
-	// Set some (arbitrary) limit on the maximum number of replicas, regardless
-	// of the number of Storage nodes.
-	if req.Rfactor > MaxRfactor {
-		err := fmt.Errorf("RFactor %v is too large (> %v)", req.Rfactor, MaxRfactor)
+	if int(req.Rfactor) < 0 {
+		err := fmt.Errorf("req.Rfactor too large and overflowed int type: %v", req.Rfactor)
 		m.Logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
-	// Split the file into blocks
-	nBlocks := gifts.NBlocks(m.config.GiftsBlockSize, req.Fsize)
-	fm := &fMeta{
-		fSize:       req.Fsize,
-		nBlocks:     nBlocks,
-		rFactor:     req.Rfactor,
-		assignments: m.makeAssignment(req, nBlocks),
-		nRead:       0,
-	}
+	var loaded bool
+	var blockAssignments []structure.BlockAssign
 
-	// Store the block-to-Storage-node mapping
-	// TODO: The master might need to store indexes into m.storages instead of
-	// the IP addresses.  When we increase replication, we'll need to find an
-	// storage not already used.
-	if _, loaded := m.fCreate(req.Fname, fm); loaded {
+	// Create one and only one fMeta for each file
+	if blockAssignments, loaded = m.fCreate(req.Fname, req); loaded {
 		err := fmt.Errorf("File %q already created", req.Fname)
 		m.Logger.Printf("Master.Create(%v) => %q", *req, err)
 		return err
 	}
 
-	// Set the return value
-	*assignments = fm.assignments
+	*assignments = blockAssignments
 
 	m.Logger.Printf("Master.Create(%v) => success", *req)
 	return nil
@@ -177,14 +180,24 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	// Figure out which replicas the client should read from
 	*ret = &structure.FileBlocks{
 		Fsize:       fm.fSize,
-		Assignments: m.pickReadReplica(fm),
+		Assignments: m.lookupReplicas(fm),
 	}
 
 	// Keep track of the number of times this file has been read
-	fm.trafficLock.Lock()
-	defer fm.trafficLock.Unlock()
-	fm.nRead++
+	// don't let this block the critical path
+	go func() {
+		// TODO: shall remove the lock since we don't care the exact data?
+		fm.trafficLock.Lock()
+		prev, curr := fm.trafficCounter.GetRaw(), fm.trafficCounter.Hit()
+		fm.trafficLock.Unlock()
 
-	m.Logger.Printf("Master.Lookup(%q) => success", fName)
+		// m.Logger.Printf("DEBUG: trafficLock for %q: prev: %v curr: %v\n", fm.fName, prev, curr)
+
+		m.trafficLock.Lock()
+		m.trafficMedian.Update(prev, curr)
+		m.trafficLock.Unlock()
+	}()
+
+	m.Logger.Printf("Master.Lookup(%q) => %v", fName, *ret)
 	return nil
 }

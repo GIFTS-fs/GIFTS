@@ -2,6 +2,7 @@ package master
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -260,9 +261,9 @@ func TestMaster_Create(t *testing.T) {
 			af(blockID == assignments[i].BlockID, fmt.Sprintf("Expected block name %q, found %q", blockID, assignments[0].BlockID))
 
 			for _, replica := range assignments[i].Replicas {
-				expectedReplica := m.storages[clock].Addr
-				af(expectedReplica == replica, fmt.Sprintf("Expected replica %q, found %q", expectedReplica, replica))
-				clock = (clock + 1) % len(m.storages)
+				expectedReplica := m.storages[clock]
+				af(expectedReplica.Addr == replica, fmt.Sprintf("Expected replica %q, found %q", expectedReplica.Addr, replica))
+				clock = (clock + 1) % m.nStorage
 			}
 		}
 	}
@@ -277,9 +278,9 @@ func TestMaster_Create(t *testing.T) {
 
 	// Requested RFactor is too large
 	fName = "large-RFactor"
-	request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: 257}
+	request = structure.FileCreateReq{Fname: fName, Fsize: 10, Rfactor: math.MaxUint64/2 + 1}
 	err = m.Create(&request, &assignments)
-	af(err != nil, "Master should not accept RFactor > 257")
+	af(err != nil, "Master should not accept RFactor that will overflow int")
 
 	// File with same name already exists
 	fName = "duplicate"

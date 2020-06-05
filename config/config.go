@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // GIFTSDefaultConfigPath in current directory
@@ -20,9 +21,12 @@ var (
 
 // Config holds all configuration data for the system
 type Config struct {
-	GiftsBlockSize int
-	Storages       []string
-	Master         string
+	MasterRebalanceIntervalSec  time.Duration
+	TrafficDecayCounterHalfLife float64
+	GiftsBlockSize              int
+	Storages                    []string
+	Master                      string
+	DynamicReplicationEnabled   bool
 }
 
 // Load the system configuration from the config file

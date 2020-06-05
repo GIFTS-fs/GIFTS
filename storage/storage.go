@@ -27,14 +27,15 @@ type Storage struct {
 // NewStorage creates a new storage node
 func NewStorage() *Storage {
 	return &Storage{
-		Logger: gifts.NewLogger("Storage", "storage", false), // PRODUCTION: banish this
+		Logger: gifts.NewLogger("Storage", "local", false), // PRODUCTION: banish this
 	}
 }
 
 // ServeRPCBlock makes the raw Storage accessible via RPC at the specified IP
 // address and port.  It blocks and does not return.
 func ServeRPCBlock(s *Storage, addr string, readyChan chan bool) (err error) {
-	server := rpc.NewServer()
+	s.Logger = gifts.NewLogger("Storage", addr, s.Logger.Enabled) // PRODUCTION: banish this
+
 	defer func() {
 		if readyChan != nil {
 			select {
@@ -44,6 +45,7 @@ func ServeRPCBlock(s *Storage, addr string, readyChan chan bool) (err error) {
 		}
 	}()
 
+	server := rpc.NewServer()
 	err = server.Register(s)
 	if err != nil {
 		s.Logger.Printf("ServeRPC(%q) => %v", addr, err)
@@ -116,8 +118,8 @@ func (s *Storage) Get(id string, ret *gifts.Block) error {
 	return nil
 }
 
-// Migrate copies the specified block to the destination Storage node
-func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
+// Replicate the specified block to the destination Storage node
+func (s *Storage) Replicate(kv *structure.ReplicateKV, ignore *bool) error {
 	// Load block
 	s.blocksLock.RLock()
 	block, found := s.blocks.Load(kv.ID)
@@ -125,8 +127,8 @@ func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
 
 	// Check if ID exists
 	if !found {
-		err := fmt.Errorf("Block with ID %q does not exist", kv.ID)
-		s.Logger.Printf("Storage.Migrate(%q, %q) => %q", kv.ID, kv.Dest, err)
+		err := fmt.Errorf("Block with ID %s does not exist", kv.ID)
+		s.Logger.Printf("Storage.Replicate(%q, %q) => %q", kv.ID, kv.Dest, err)
 		return err
 	}
 
@@ -134,11 +136,11 @@ func (s *Storage) Migrate(kv *structure.MigrateKV, ignore *bool) error {
 	rs, _ := s.rpc.LoadOrStore(kv.Dest, NewRPCStorage(kv.Dest))
 	blockKV := structure.BlockKV{ID: kv.ID, Data: block.(gifts.Block)}
 	if err := rs.(*RPCStorage).Set(&blockKV); err != nil {
-		s.Logger.Printf("Storage.Migrate(%q, %q) => %v", kv.ID, kv.Dest, err)
+		s.Logger.Printf("Storage.Replicate(%q, %q) => %v", kv.ID, kv.Dest, err)
 		return err
 	}
 
-	s.Logger.Printf("Storage.Migrate(%q, %q) => success", kv.ID, kv.Dest)
+	s.Logger.Printf("Storage.Replicate(%q, %q) => success", kv.ID, kv.Dest)
 	return nil
 }
 
