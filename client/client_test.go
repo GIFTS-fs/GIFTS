@@ -263,25 +263,25 @@ func TestBenchmarkClient_Read(t *testing.T) {
 
 	// blockSize, nReaders, stat.Mean(runResults, nil), stat.StdDev(runResults, nil)
 	msg := "Block Size (bytes), # of Readers, Average Throughput (MBps), STD (MBps), %"
-	t.Log(msg)
+	fmt.Println(msg)
 	writer.WriteString(msg + "\n")
 
 	g := generate.NewGenerate()
 	nRuns := int64(10)
-	runTime := float64(10)
+	runTime := float64(3)
 
 	config, err := config.LoadGet("../config/config.json")
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
 	// For block size
-	for blockSize := int64(8192); blockSize <= 8192; blockSize *= 2 {
+	for blockSize := int64(config.GiftsBlockSize); blockSize <= int64(config.GiftsBlockSize); blockSize *= 2 {
 		for nReaders := 40; nReaders <= 40; nReaders++ { // Create a set of blocks to read
 			// Create a set of blocks to read
 			c := NewClient([]string{config.Master}, config)
 			c.Logger.Enabled = false
 			fNames := make([]string, 1000)
 			for n := int64(0); n < 1000; n++ {
-				fName := fmt.Sprintf("file_%d_%d_%d_%d", blockSize, blockSize, 1, n)
+				fName := fmt.Sprintf("file_%d", n)
 				fNames[n] = fName
 
 				data := make([]byte, blockSize)
@@ -295,6 +295,7 @@ func TestBenchmarkClient_Read(t *testing.T) {
 			done := make(chan float64, nReaders)
 			runResults := make([]float64, 0)
 			for run := int64(0); run < nRuns; run++ {
+				fmt.Printf("\tRun %d\n", run)
 				for reader := 0; reader < nReaders; reader++ {
 					go func() {
 						client := NewClient([]string{config.Master}, config)
@@ -304,7 +305,6 @@ func TestBenchmarkClient_Read(t *testing.T) {
 						startTime := time.Now()
 						for time.Since(startTime).Seconds() < runTime {
 							data, err = client.Read(fNames[nReads%1000])
-							test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 							nReads++
 						}
 
@@ -325,7 +325,7 @@ func TestBenchmarkClient_Read(t *testing.T) {
 			mean := stat.Mean(runResults, nil)
 			stddev := stat.StdDev(runResults, nil)
 			msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
-			t.Log(msg)
+			fmt.Println(msg)
 			writer.WriteString(msg + "\n")
 			writer.Flush()
 		}
