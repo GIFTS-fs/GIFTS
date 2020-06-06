@@ -9,5 +9,5 @@
         "localhost:4002",
         "localhost:4003"
     ],
-    "Master": "localhost:4004"
+    "Master": "172.31.12.82:4004"
 }
