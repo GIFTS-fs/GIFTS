@@ -274,8 +274,8 @@ func TestBenchmarkClient_Read(t *testing.T) {
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
 	// For block size
-	for blockSize := int64(1); blockSize <= 1048576; blockSize *= 2 {
-		for nReaders := 4; nReaders <= 40; nReaders++ { // Create a set of blocks to read
+	for blockSize := int64(8192); blockSize <= 8192; blockSize *= 2 {
+		for nReaders := 40; nReaders <= 40; nReaders++ { // Create a set of blocks to read
 			// Create a set of blocks to read
 			c := NewClient([]string{config.Master}, config)
 			c.Logger.Enabled = false
@@ -304,6 +304,7 @@ func TestBenchmarkClient_Read(t *testing.T) {
 						startTime := time.Now()
 						for time.Since(startTime).Seconds() < runTime {
 							data, err = client.Read(fNames[nReads%1000])
+							test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 							nReads++
 						}
 
@@ -331,7 +332,7 @@ func TestBenchmarkClient_Read(t *testing.T) {
 	}
 }
 
-func TestBenchmarkClient_ReadOneFile(t *testing.T) {
+func TestBenchmarkClient_OneFile(t *testing.T) {
 	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
 	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
 	writer := bufio.NewWriter(file)
@@ -346,8 +347,8 @@ func TestBenchmarkClient_ReadOneFile(t *testing.T) {
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
 	g := generate.NewGenerate()
-	var nRuns int64 = 10
-	var runTime float64 = 1
+	var nRuns int64 = 5
+	var runTime float64 = 5
 	// var nReaders int = 50
 	var blockSize int = config.GiftsBlockSize
 
@@ -357,19 +358,13 @@ func TestBenchmarkClient_ReadOneFile(t *testing.T) {
 			// Create a set of blocks to read
 			c := NewClient([]string{config.Master}, config)
 			c.Logger.Enabled = false
-			fNames := make([]string, 1000)
-			for n := int64(0); n < 1000; n++ {
-				fName := fmt.Sprintf("file_%d_%d_%d_%d", blockSize, fileSize, nReplicas, n)
-				fNames[n] = fName
+			fName := fmt.Sprintf("file_%d_%d_%d", blockSize, fileSize, nReplicas)
+			data := make([]byte, fileSize)
+			g.Read(data)
+			c.Store(fName, uint(nReplicas), data)
+			// test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
 
-				data := make([]byte, fileSize)
-				g.Read(data)
-
-				err := c.Store(fName, uint(nReplicas), data)
-				test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
-			}
-
-			for nReaders := 1; nReaders <= 50; nReaders++ {
+			for nReaders := 1500; nReaders <= 1500; nReaders++ {
 
 				// For nRuns
 				done := make(chan float64, nReaders)
@@ -382,12 +377,15 @@ func TestBenchmarkClient_ReadOneFile(t *testing.T) {
 							data := make([]byte, fileSize)
 
 							startTime := time.Now()
+							defer func() {
+								done <- float64(nReads*fileSize) / time.Since(startTime).Seconds() / 1000000
+							}()
 							for time.Since(startTime).Seconds() < runTime {
-								data, err = client.Read(fNames[nReads%1000])
+								data, err = client.Read(fName)
+								test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 								nReads++
 							}
 
-							done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
 							t.Log(len(data))
 						}()
 					}
