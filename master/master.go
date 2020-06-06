@@ -191,7 +191,7 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 		prev, curr := fm.trafficCounter.GetRaw(), fm.trafficCounter.Hit()
 		fm.trafficLock.Unlock()
 
-		// m.Logger.Printf("DEBUG: trafficLock for %q: prev: %v curr: %v\n", fm.fName, prev, curr)
+		// m.Logger.Printf("DEBUG: traffic for %q: prev: %v curr: %v\n", fm.fName, prev, curr)
 
 		m.trafficLock.Lock()
 		m.trafficMedian.Update(prev, curr)
