@@ -264,12 +264,12 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 
 	// blockSize, nReaders, stat.Mean(runResults, nil), stat.StdDev(runResults, nil)
 	msg := "Block Size (bytes), # of Readers, Average Throughput (MBps), STD (MBps), %"
-	t.Log(msg)
+	fmt.Println(msg)
 	writer.WriteString(msg + "\n")
 
 	g := generate.NewGenerate()
 	nRuns := int64(10)
-	runTime := float64(10)
+	runTime := float64(3)
 	// nReaders := 50
 	nBlocks := int64(1000)
 
@@ -279,6 +279,9 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 	// For block size
 	for blockSize := int64(1); blockSize <= 1048576; blockSize *= 2 {
 		for nReaders := 20; nReaders <= 20; nReaders++ { // Create a set of blocks to read
+			fmt.Printf("Starting test for block size %d in 5s\n", blockSize)
+			time.Sleep(5 * time.Second)
+
 			rpcs := NewRPCStorage(config.Storages[0])
 			rpcs.Logger.Enabled = false
 			ids := make([]string, nBlocks)
@@ -296,6 +299,7 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 			done := make(chan float64, nReaders)
 			runResults := make([]float64, 0)
 			for run := int64(0); run < nRuns; run++ {
+				fmt.Printf("\tRun %d\n", run)
 				for reader := 0; reader < nReaders; reader++ {
 					go func() {
 						rs := NewRPCStorage(config.Storages[0])
@@ -326,7 +330,7 @@ func TestBenchmarkRPCStorage_Get(t *testing.T) {
 			mean := stat.Mean(runResults, nil)
 			stddev := stat.StdDev(runResults, nil)
 			msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
-			t.Log(msg)
+			fmt.Println(msg)
 			writer.WriteString(msg + "\n")
 			writer.Flush()
 		}
