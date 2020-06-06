@@ -2,7 +2,7 @@
     "DynamicReplicationEnabled": true,
     "MasterRebalanceIntervalSec": 10,
     "TrafficDecayCounterHalfLife": 30.0,
-    "GiftsBlockSize": 8192,
+    "GiftsBlockSize": 16384,
     "Storages": [
         "172.31.31.65:4000",
         "172.31.23.208:4001"
