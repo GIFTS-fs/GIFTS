@@ -7,10 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GIFTS-fs/GIFTS/client"
 	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/master"
-	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
 	"gonum.org/v1/gonum/stat"
 )
@@ -34,20 +32,13 @@ func TestBenchmarkMaster_Lookup(t *testing.T) {
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
 	// Create files
-	c := client.NewClient([]string{config.Master}, config)
-	c.Logger.Enabled = false
+	m := master.NewConn(config.Master)
 	fNames := make([]string, 1000)
 	for n := int64(0); n < 1000; n++ {
 		fName := fmt.Sprintf("file_%d", n)
 		fNames[n] = fName
 
-		req := structure.FileCreateReq{
-			Fname:   fName,
-			Fsize:   config.GiftsBlockSize,
-			Rfactor: 1,
-		}
-		a := make([]structure.BlockAssign, 0)
-		m.Create(&req, &a)
+		m.Create(fName, config.GiftsBlockSize, 1)
 	}
 
 	for nReaders := 1; nReaders <= 100; nReaders++ {
