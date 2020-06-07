@@ -414,3 +414,99 @@ func TestBenchmarkClient_OneFile(t *testing.T) {
 		}
 	}
 }
+
+func TestBenchmarkClient_OneFileWave(t *testing.T) {
+	t.Skip()
+	config, err := config.LoadGet("../config/config.json")
+	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
+
+	g := generate.NewGenerate()
+	fileSize := config.GiftsBlockSize
+	nReplicas := 1
+	runTime := 60
+	nFileOneReaders := 5
+	nFileTwoReaders := 5
+
+	// Create two files
+	fmt.Println("Creating files")
+	for i := 0; i < 2; i++ {
+		c := NewClient([]string{config.Master}, config)
+		fName := fmt.Sprintf("file_%d", i)
+
+		data := make([]byte, fileSize)
+		g.Read(data)
+		c.Store(fName, uint(nReplicas), data)
+	}
+
+	// Create 5 readers for file one (read every 10ms)
+	fmt.Println("Creating readers for file one")
+	for i := 0; i < nFileOneReaders; i++ {
+		fName := "file_0"
+
+		go func() {
+			client := NewClient([]string{config.Master}, config)
+			data := make([]byte, fileSize)
+
+			for startTime := time.Now(); time.Since(startTime).Hours() < 2; {
+				data, err = client.Read(fName)
+				test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+
+				time.Sleep(10 * time.Millisecond)
+			}
+
+			t.Log(len(data))
+		}()
+	}
+
+	// Create 35 readers for file two
+	fmt.Println("Creating readers for file two")
+	done := make(chan []int, nFileTwoReaders)
+	for i := 0; i < nFileTwoReaders; i++ {
+		fName := "file_1"
+
+		go func() {
+			client := NewClient([]string{config.Master}, config)
+			data := make([]byte, fileSize)
+
+			nReads := 0
+			readArr := make([]int, 0, runTime)
+			timer := 1.0
+
+			defer func() { done <- readArr }()
+			for startTime := time.Now(); time.Since(startTime).Seconds() < float64(runTime); {
+				data, err = client.Read(fName)
+				test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+				nReads++
+
+				if time.Since(startTime).Seconds() > timer {
+					readArr = append(readArr, nReads)
+					nReads = 0
+					timer++
+				}
+			}
+
+			t.Log(len(data))
+		}()
+	}
+
+	// Wait for results
+	results := make([]int, runTime+5)
+	for i := 0; i < nFileTwoReaders; i++ {
+		clientResult := <-done
+
+		for i := range clientResult {
+			results[i] += clientResult[i]
+		}
+	}
+
+	// Write results to a file
+	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
+	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
+	writer := bufio.NewWriter(file)
+	defer file.Close()
+	defer writer.Flush()
+
+	for i := range results {
+		writer.WriteString(fmt.Sprintf("%d,%d\n", i, results[i]))
+	}
+}
