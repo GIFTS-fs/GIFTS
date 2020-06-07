@@ -369,9 +369,11 @@ func TestBenchmarkClient_OneFile(t *testing.T) {
 			for nReaders := 40; nReaders <= 40; nReaders++ {
 
 				// For nRuns
+				fmt.Printf("Starting test with file size %d and %d replicas\n", fileSize, nReplicas)
 				done := make(chan float64, nReaders)
 				runResults := make([]float64, 0)
 				for run := int64(0); run < nRuns; run++ {
+					fmt.Printf("\tRun %d\n", run)
 					for reader := 0; reader < nReaders; reader++ {
 						go func() {
 							client := NewClient([]string{config.Master}, config)
