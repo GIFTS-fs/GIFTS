@@ -349,8 +349,8 @@ func TestBenchmarkClient_OneFile(t *testing.T) {
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
 	g := generate.NewGenerate()
-	var nRuns int64 = 5
-	var runTime float64 = 5
+	var nRuns int64 = 10
+	var runTime float64 = 10
 	// var nReaders int = 50
 	var blockSize int = config.GiftsBlockSize
 
@@ -366,7 +366,7 @@ func TestBenchmarkClient_OneFile(t *testing.T) {
 			c.Store(fName, uint(nReplicas), data)
 			// test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
 
-			for nReaders := 1500; nReaders <= 1500; nReaders++ {
+			for nReaders := 40; nReaders <= 40; nReaders++ {
 
 				// For nRuns
 				done := make(chan float64, nReaders)
