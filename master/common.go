@@ -16,6 +16,7 @@ func clockTick(hand int, len int) (newHand int) {
 	return
 }
 
+/* UNTESTED
 func clockTickBack(hand int, len int) (newHand int) {
 	newHand = hand - 1
 	if newHand == 0 {
@@ -23,3 +24,4 @@ func clockTickBack(hand int, len int) (newHand int) {
 	}
 	return
 }
+*/

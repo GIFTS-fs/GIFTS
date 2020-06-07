@@ -55,11 +55,45 @@ func main() {
 	// create 2 files
 	c := client.NewClient([]string{conf.Master}, conf)
 	c.Store("f1", 1, data)
-	c.Store("f2", 1, data)
+	c.Store("f2", 1, append(data, data...))
 
 	// read f1 nRead times
 	for i := 0; i < nRead; i++ {
 		time.Sleep(1 * time.Second)
 		c.Read("f1")
 	}
+
+	// sleep and wait for the temperature to cool down
+	time.Sleep(5 * time.Second)
+
+	// read f1 nRead times again
+	for i := 0; i < nRead; i++ {
+		time.Sleep(1 * time.Second)
+		c.Read("f1")
+	}
+
+	// sleep and wait for the temperature to cool down
+	time.Sleep(5 * time.Second)
+
+	// read f2 nRead times
+	for i := 0; i < nRead; i++ {
+		time.Sleep(1 * time.Second)
+		c.Read("f2")
+	}
+
+	// generate plenty of data
+	plentyData := make([]byte, conf.GiftsBlockSize+1)
+	ge.Read(plentyData)
+
+	// create a plenty file
+	c.Store("f3", 1, plentyData)
+
+	// read f3 nRead times
+	for i := 0; i < nRead; i++ {
+		time.Sleep(1 * time.Second)
+		c.Read("f3")
+	}
+
+	// sleep and wait for the temperature to cool down
+	time.Sleep(10 * time.Second)
 }
