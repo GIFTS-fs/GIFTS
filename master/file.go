@@ -41,6 +41,7 @@ func (fb *fileBlock) rmReplica(r *storeMeta) {
 
 	for i := range fb.replicas {
 		// can we compare pointer address???
+		// may be faster but very insecure
 		if fb.replicas[i].Addr == r.Addr {
 			fb.replicas[i] = fb.replicas[len(fb.replicas)-1]
 			fb.replicas = fb.replicas[:len(fb.replicas)-1]
@@ -64,12 +65,29 @@ func (fb *fileBlock) nReplicas() int {
 	return len(fb.replicas)
 }
 
+/*
+ * Note on clockNext and clockRemove:
+ * With only 2 pointers, cannot tell if full and empty
+ * But since there is no need for calling Next on file with 0 rFactor
+ * clockNext is fine with the simple check.
+ * clockRemove must be called after making sure there is at least one replica
+ */
+
+// beg++ end
 func (m *Master) clockNextReplicaBlock(fb *fileBlock) (s *storeMeta) {
 	// caller's responibility to check
 	if fb.clockBeg == fb.clockEnd {
 		return nil
 	}
 	s, fb.clockBeg = m.storages[fb.clockBeg], clockTick(fb.clockBeg, m.nStorage)
+	return
+}
+
+// beg end++
+// no correctness guaranteed if called with 0 replicas (break the whole algorithm)
+func (m *Master) clockRemoveReplicaBlock(fb *fileBlock) (s *storeMeta) {
+	// caller's responibility to check
+	s, fb.clockEnd = m.storages[fb.clockEnd], clockTick(fb.clockEnd, m.nStorage)
 	return
 }
 
