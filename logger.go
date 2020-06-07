@@ -22,7 +22,7 @@ func setDefaultLogWritter(w io.Writer) {
 // const logFilePrefix = "GIFTS_log_"
 
 // struct_addr_pid_loggerID
-const giftsLogFmt = "[%s_%s_%d_%d] "
+const giftsLogFmt = "[%s|%s|%d|%d] "
 
 // Logger is a wrapper for log.Logger.
 // WARN: even if disabled, the string formating (perhaps) still takes CPU shares
