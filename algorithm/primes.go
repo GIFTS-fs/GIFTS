@@ -1,6 +1,8 @@
 package algorithm
 
-// TODO: very bad algorithm design
+import "math/big"
+
+// TODO: fix very bad algorithm design
 
 // PrimesUntil non-negative number n (including n)
 func PrimesUntil(n int) (primes []int) {
@@ -27,8 +29,8 @@ func PrimesUntil(n int) (primes []int) {
 	return
 }
 
-// NextPrimeOf number n
-func NextPrimeOf(n int) (nextPrime int) {
+// NextPrimeOfOld number n
+func NextPrimeOfOld(n int) (nextPrime int) {
 	primes := PrimesUntil(n)
 	isPrime := func(n int) bool {
 		if n <= 1 {
@@ -51,5 +53,18 @@ func NextPrimeOf(n int) (nextPrime int) {
 		nextPrime++
 	}
 
+	return
+}
+
+// NextPrimeOf number n,
+// must be small enough to fit,
+// undefined overflow otherwise
+func NextPrimeOf(n int) (nextPrime int) {
+	b := big.NewInt(int64(n + 1))
+	bigOne := big.NewInt(1)
+	for !b.ProbablyPrime(1) {
+		b.Add(b, bigOne)
+	}
+	nextPrime = int(b.Int64())
 	return
 }
