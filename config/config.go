@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/GIFTS-fs/GIFTS/policy"
 )
 
 // GIFTSDefaultConfigPath in current directory
@@ -27,6 +29,8 @@ type Config struct {
 	Storages                    []string
 	Master                      string
 	DynamicReplicationEnabled   bool
+	MaglevHashingMultipler      int
+	BlockPlacementPolicy        policy.BlockPlacementPolicy
 }
 
 // Load the system configuration from the config file
