@@ -33,6 +33,10 @@ func PopulateLookupTable(MaglevHashingMultipler int, N int, names []string) (ent
 	// Roman Kononov and Eric Mann-Hielscher and Ardas Cilingiroglu and
 	// Bin Cheyney and Wentao Shang and Jinnah Dylan Hosein
 
+	if N == 0 {
+		return
+	}
+
 	M := NextPrimeOf(N * MaglevHashingMultipler)
 
 	// make the 2D slice for permutation
