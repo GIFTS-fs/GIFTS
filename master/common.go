@@ -8,20 +8,6 @@ func nameBlock(fname string, i int) string {
 	return fname + strconv.FormatInt(int64(i), 16)
 }
 
-func clockTick(hand int, len int) (newHand int) {
-	newHand = hand + 1
-	if newHand >= len {
-		newHand = 0
-	}
-	return
+func clockTick(hand int, len int, amount int) int {
+	return (hand + amount) % len
 }
-
-/* UNTESTED
-func clockTickBack(hand int, len int) (newHand int) {
-	newHand = hand - 1
-	if newHand == 0 {
-		newHand = len - 1
-	}
-	return
-}
-*/

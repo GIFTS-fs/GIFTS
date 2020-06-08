@@ -23,6 +23,9 @@ type fileBlock struct {
 	clockEnd int // first replica assigned
 	// must be used together with clock assignmen policy
 	// otherwise invariant breaks
+
+	// a list of storages that stores no block of this file
+	// untouched []*storeMeta
 }
 
 func newFileBlock(bID string) *fileBlock {
@@ -65,38 +68,13 @@ func (fb *fileBlock) nReplicas() int {
 	return len(fb.replicas)
 }
 
-/*
- * Note on clockNext and clockRemove:
- * With only 2 pointers, cannot tell if full and empty
- * But since there is no need for calling Next on file with 0 rFactor
- * clockNext is fine with the simple check.
- * clockRemove must be called after making sure there is at least one replica
- */
-
-// beg++ end
-func (m *Master) clockNextReplicaBlock(fb *fileBlock) (s *storeMeta) {
-	// caller's responibility to check
-	if fb.clockBeg == fb.clockEnd {
-		return nil
-	}
-	s, fb.clockBeg = m.storages[fb.clockBeg], clockTick(fb.clockBeg, m.nStorage)
-	return
-}
-
-// beg end++
-// no correctness guaranteed if called with 0 replicas (break the whole algorithm)
-func (m *Master) clockRemoveReplicaBlock(fb *fileBlock) (s *storeMeta) {
-	// caller's responibility to check
-	s, fb.clockEnd = m.storages[fb.clockEnd], clockTick(fb.clockEnd, m.nStorage)
-	return
-}
-
 type fileMeta struct {
 	// const fields
-	fName   string // file name
-	fSize   int    // size of the file, to handle padding
-	nBlocks int    // save the compution
-	rFactor uint   // how important the user thinks this file is
+	fName       string // file name
+	fSize       int    // size of the file, to handle padding
+	nBlocks     int    // save the compution
+	rFactor     uint   // how important the user thinks this file is
+	initialized bool   // if the initialization is complete
 
 	nReplica int          // real number of replica
 	blocks   []*fileBlock // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) >= 1
@@ -133,12 +111,14 @@ func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (blockAssig
 	defer m.trafficLock.Unlock()
 	m.trafficMedian.Add(fm.trafficCounter.GetRaw())
 
+	fm.initialized = true
+
 	return
 }
 
 func (m *Master) fLookup(fname string) (*fileMeta, bool) {
 	fm, found := m.fMap.Load(fname)
-	if !found {
+	if !found || !fm.(*fileMeta).initialized {
 		return nil, false
 	}
 

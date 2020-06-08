@@ -301,7 +301,7 @@ func TestMaster_Create(t *testing.T) {
 	// Create file with less than one block of data with 1 replica
 	fName = "less-than-one-block"
 	request = structure.FileCreateReq{Fname: fName, Fsize: m.config.GiftsBlockSize - 1, Rfactor: 1}
-	clock = m.createClockHand
+	clock = m.createHandRR
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 	af(len(assignments) == 1, fmt.Sprintf("Expected 1 blocks, found %d", len(assignments)))
@@ -310,7 +310,7 @@ func TestMaster_Create(t *testing.T) {
 	// Create file with exactly one block of data with 1 replica
 	fName = "one-block"
 	request = structure.FileCreateReq{Fname: fName, Fsize: m.config.GiftsBlockSize, Rfactor: 1}
-	clock = m.createClockHand
+	clock = m.createHandRR
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 	af(len(assignments) == 1, fmt.Sprintf("Expected 1 blocks, found %d", len(assignments)))
@@ -319,7 +319,7 @@ func TestMaster_Create(t *testing.T) {
 	// Create file with more than one block of data with 1 replica
 	fName = "more-than-one-block"
 	request = structure.FileCreateReq{Fname: fName, Fsize: 3*m.config.GiftsBlockSize + 1, Rfactor: 1}
-	clock = m.createClockHand
+	clock = m.createHandRR
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 	af(len(assignments) == 4, fmt.Sprintf("Expected 4 blocks, found %d", len(assignments)))
@@ -328,7 +328,7 @@ func TestMaster_Create(t *testing.T) {
 	// Create empty file with multiple replicas
 	fName = "empty-replicate"
 	request = structure.FileCreateReq{Fname: fName, Fsize: 0, Rfactor: 3}
-	clock = m.createClockHand
+	clock = m.createHandRR
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 	af(len(assignments) == 0, "Empty file should have 0 blocks")
@@ -337,7 +337,7 @@ func TestMaster_Create(t *testing.T) {
 	// Create file with more than one block of data with multiple replicas
 	fName = "more-than-one-block-replicate"
 	request = structure.FileCreateReq{Fname: fName, Fsize: 3*m.config.GiftsBlockSize + 1, Rfactor: 2}
-	clock = m.createClockHand
+	clock = m.createHandRR
 	err = m.Create(&request, &assignments)
 	af(err == nil, fmt.Sprintf("Master.Create failed: %v", err))
 	af(len(assignments) == 4, fmt.Sprintf("Expected 4 blocks, found %d", len(assignments)))

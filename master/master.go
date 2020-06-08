@@ -12,6 +12,7 @@ import (
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/algorithm"
 	"github.com/GIFTS-fs/GIFTS/config"
+	"github.com/GIFTS-fs/GIFTS/policy"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
@@ -30,27 +31,39 @@ type Master struct {
 	// storage addr -> *storeMeta
 	sMap sync.Map
 
-	// New block placement policy 1: Clock
-	createClockHand int
+	// Only one balancing thread at one time
+	isBalancing     bool
+	isBalancingLock sync.Mutex
 
-	isBalancing      bool
-	isBalancingLock  sync.Mutex
-	balanceClockHand int
-
+	// traffic statistics
 	trafficMedian *algorithm.RunningMedian
 	trafficLock   sync.Mutex
+
+	/* Policy fields */
+
+	createHandLock         sync.Mutex
+	touchCreateHandClosure func(int) int
+
+	// Block placement policy 1: Round-robin
+	createHandRR int
+
+	// Block placement policy 2: consist hashing + random permutation
+	placementEntry    []int
+	placementEntryLen int
+	// placementEntry[createHandPermu]: next backend to place a block
+	createHandPermu int
 }
 
 // NewMaster creates a new GIFTS Master.
 // It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
-		Logger:          gifts.NewLogger("Master", "local", false), // PRODUCTION: banish this
-		nStorage:        len(storageAddr),
-		createClockHand: 0,
-		storages:        make([]*storeMeta, len(storageAddr)),
-		trafficMedian:   algorithm.NewRunningMedian(),
-		config:          config,
+		Logger:        gifts.NewLogger("Master", "local", false), // PRODUCTION: banish this
+		nStorage:      len(storageAddr),
+		createHandRR:  0,
+		storages:      make([]*storeMeta, len(storageAddr)),
+		trafficMedian: algorithm.NewRunningMedian(),
+		config:        config,
 	}
 
 	for i, addr := range storageAddr {
@@ -59,7 +72,22 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 		m.storages[i] = s
 	}
 
+	// For selection policy: rand
 	rand.Seed(time.Now().UnixNano())
+
+	switch config.BlockPlacementPolicy {
+	case policy.BlockPlacementPolicyPermutation:
+		m.populateLookupTable(storageAddr)
+		m.touchCreateHandClosure = func(n int) (ret int) {
+			ret, m.createHandPermu = m.createHandPermu, clockTick(m.createHandPermu, m.nStorage, n)
+			return
+		}
+	default:
+		m.touchCreateHandClosure = func(n int) (ret int) {
+			ret, m.createHandRR = m.createHandRR, clockTick(m.createHandRR, m.nStorage, n)
+			return
+		}
+	}
 
 	return &m
 }
