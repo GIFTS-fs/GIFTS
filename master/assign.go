@@ -8,21 +8,13 @@ import (
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
+// touchCreateHand to get current index and move it by n (blocks*replicas).
+// idx is the index of the backend picked.
+// It works for policy 1 rr and policy 2 permu.
 func (m *Master) touchCreateHand(n int) int {
 	m.createHandLock.Lock()
 	defer m.createHandLock.Unlock()
 	return m.touchCreateHandClosure(n)
-}
-
-// nextCreateStorageRR to be assigned for a new block,
-// for placement policy 1: round-robin.
-// idx is the index of the backend picked,
-// nextIdx is the concequtive index of the backend to be picked,
-// used for replica block placement purpose
-func (m *Master) nextCreateStorageRR() (s *storeMeta, idx, nextIdx int) {
-	idx, s, m.createHandRR = m.createHandRR, m.storages[m.createHandRR], clockTick(m.createHandRR, m.nStorage, 1)
-	nextIdx = m.createHandRR
-	return
 }
 
 // populateLookupTable for placement policy 2,
@@ -32,15 +24,15 @@ func (m *Master) populateLookupTable(names []string) {
 	m.placementEntryLen = len(m.placementEntry)
 }
 
-// nextCreateStoragePermu to be assigned for a new block,
-// for placement policy 2: permutation.
-// see nextCreateStorageRR for detail about idx and nextIdx
-func (m *Master) nextCreateStoragePermu() (s *storeMeta, idx, nextIdx int) {
-	idx, m.createHandPermu = m.placementEntry[m.createHandPermu], clockTick(m.createHandPermu, m.placementEntryLen, 1)
-	s = m.storages[idx]
-	nextIdx = clockTick(idx, m.nStorage, 1)
-	return
-}
+// // nextCreateStoragePermu to be assigned for a new block,
+// // for placement policy 2: permutation.
+// // see nextCreateStorageRR for detail about idx and nextIdx
+// func (m *Master) nextCreateStoragePermu() (s *storeMeta, idx, nextIdx int) {
+// 	idx, m.createHandPermu = m.placementEntry[m.createHandPermu], clockTick(m.createHandPermu, m.placementEntryLen, 1)
+// 	s = m.storages[idx]
+// 	nextIdx = clockTick(idx, m.nStorage, 1)
+// 	return
+// }
 
 // createAssignments for the request, assume all arguments are valid to the best knowledge of the caller
 func (m *Master) createAssignments(req *structure.FileCreateReq, nBlocks int) (assignments []*fileBlock, nReplica int, blockAssignments []structure.BlockAssign) {
@@ -55,32 +47,31 @@ func (m *Master) createAssignments(req *structure.FileCreateReq, nBlocks int) (a
 	assignments = make([]*fileBlock, nBlocks)
 	blockAssignments = make([]structure.BlockAssign, nBlocks)
 
+	for i := range assignments {
+		bID := nameBlock(req.Fname, i)
+		assignments[i] = newFileBlock(bID)
+		blockAssignments[i].BlockID = bID
+	}
+
+	// no replica, no need to consult policy
+	if nReplica == 0 {
+		return
+	}
+
 	switch m.config.BlockPlacementPolicy {
 	case policy.BlockPlacementPolicyPermutation:
 		panic("Not implemented")
 	default: // use RR as default
-		// case policy.BlockPlacementPolicyRR:
 		// New block placement policy 1: Round-robin
+
+		handIdx := m.touchCreateHand(nBlocks * nReplica)
+
 		for i := range assignments {
-			bID := nameBlock(req.Fname, i)
-			assignments[i] = newFileBlock(bID)
-			blockAssignments[i].BlockID = bID
-
-			if nReplica == 0 {
-				continue
-			}
-
-			// WIP: calculate total increment on the createHand
-			// call touch(increment)
-			// then everything later is local to this thread
-
-			// get the beginning index of this block
-			_, idx, _ := m.nextCreateStorageRR()
-
-			assignments[i].clockEnd = idx
-			assignments[i].clockBeg = idx
+			assignments[i].clockEnd = handIdx
+			assignments[i].clockBeg = handIdx
 
 			for j := 0; j < nReplica; j++ {
+				handIdx = clockTick(handIdx, m.nStorage, 1)
 				store := m.nextReplicaBlockRR(assignments[i])
 				assignments[i].addReplica(store)
 				blockAssignments[i].Replicas = append(blockAssignments[i].Replicas, store.Addr)

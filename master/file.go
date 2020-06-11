@@ -109,13 +109,14 @@ func (m *Master) fCreate(fname string, req *structure.FileCreateReq) (blockAssig
 
 	m.trafficLock.Lock()
 	defer m.trafficLock.Unlock()
-	m.trafficMedian.Add(fm.trafficCounter.GetRaw())
+	m.trafficMedian.Add(fm.trafficCounter.GetRaw()) // Add(0)
 
 	fm.initialized = true
 
 	return
 }
 
+// return fm and true if found and initialized
 func (m *Master) fLookup(fname string) (*fileMeta, bool) {
 	fm, found := m.fMap.Load(fname)
 	if !found || !fm.(*fileMeta).initialized {
@@ -125,6 +126,7 @@ func (m *Master) fLookup(fname string) (*fileMeta, bool) {
 	return fm.(*fileMeta), true
 }
 
+// return true if found and initialized
 func (m *Master) fExist(fname string) bool {
 	_, exist := m.fLookup(fname)
 	return exist

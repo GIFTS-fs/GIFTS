@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/GIFTS-fs/GIFTS/config"
+	"github.com/GIFTS-fs/GIFTS/policy"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
 )
@@ -255,15 +256,19 @@ func TestMaster_Create(t *testing.T) {
 		test.AF(t, cond, msg)
 	}
 
-	verifyAssignments := func(m *Master, request structure.FileCreateReq, clock int, assignments []structure.BlockAssign) {
-		for i := range assignments {
-			blockID := fmt.Sprintf("%s%d", request.Fname, i)
-			af(blockID == assignments[i].BlockID, fmt.Sprintf("Expected block name %q, found %q", blockID, assignments[0].BlockID))
+	conf := config.Get()
 
-			for _, replica := range assignments[i].Replicas {
-				expectedReplica := m.storages[clock]
-				af(expectedReplica.Addr == replica, fmt.Sprintf("Expected replica %q, found %q", expectedReplica.Addr, replica))
-				clock = (clock + 1) % m.nStorage
+	verifyAssignments := func(m *Master, request structure.FileCreateReq, clock int, assignments []structure.BlockAssign) {
+		if conf.BlockPlacementPolicy == policy.BlockPlacementPolicyRR {
+			for i := range assignments {
+				blockID := fmt.Sprintf("%s%d", request.Fname, i)
+				af(blockID == assignments[i].BlockID, fmt.Sprintf("Expected block name %q, found %q", blockID, assignments[0].BlockID))
+
+				for _, replica := range assignments[i].Replicas {
+					expectedReplica := m.storages[clock]
+					af(expectedReplica.Addr == replica, fmt.Sprintf("Expected replica %q, found %q", expectedReplica.Addr, replica))
+					clock = (clock + 1) % m.nStorage
+				}
 			}
 		}
 	}
@@ -274,7 +279,7 @@ func TestMaster_Create(t *testing.T) {
 	var fName string
 	var clock int
 
-	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"}, config.Get())
+	m := NewMaster([]string{"s1", "s2", "s3", "s4", "s5", "s6"}, conf)
 
 	// Requested RFactor is too large
 	fName = "large-RFactor"
