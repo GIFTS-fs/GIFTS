@@ -12,10 +12,10 @@ import (
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/generate"
-	"github.com/GIFTS-fs/GIFTS/master"
 	"github.com/GIFTS-fs/GIFTS/storage"
 	"github.com/GIFTS-fs/GIFTS/structure"
 	"github.com/GIFTS-fs/GIFTS/test"
+	"gonum.org/v1/gonum/stat"
 )
 
 func TestMain(m *testing.M) {
@@ -254,73 +254,278 @@ func TestClient_Read(t *testing.T) {
 	test.AF(t, string(ret) == expected, fmt.Sprintf("Expected %q, found %q", expected, ret))
 }
 
-func TestBenchmarkClient_ReadOneFile(t *testing.T) {
+func TestBenchmarkClient_Read(t *testing.T) {
 	t.Skip()
-	file, err := os.Create("./results.csv")
+	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
 	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
 	writer := bufio.NewWriter(file)
+	defer writer.Flush()
 	defer file.Close()
 
-	var testTime float64 = 2
-	var nTests float64 = 1
+	// blockSize, nReaders, stat.Mean(runResults, nil), stat.StdDev(runResults, nil)
+	msg := "Block Size (bytes), # of Readers, Average Throughput (MBps), STD (MBps), %"
+	fmt.Println(msg)
+	writer.WriteString(msg + "\n")
+
+	g := generate.NewGenerate()
+	nRuns := int64(10)
+	runTime := float64(3)
 
 	config, err := config.LoadGet("../config/config.json")
 	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
 
-	for _, addr := range config.Storages {
-		s := storage.NewStorage()
-		storage.ServeRPC(s, addr)
-	}
+	// For block size
+	for blockSize := int64(config.GiftsBlockSize); blockSize <= int64(config.GiftsBlockSize); blockSize *= 2 {
+		for nReaders := 40; nReaders <= 40; nReaders++ { // Create a set of blocks to read
+			// Create a set of blocks to read
+			c := NewClient([]string{config.Master}, config)
+			c.Logger.Enabled = false
+			fNames := make([]string, 1000)
+			for n := int64(0); n < 1000; n++ {
+				fName := fmt.Sprintf("file_%d", n)
+				fNames[n] = fName
 
-	m := master.NewMaster(config.Storages, config)
-	master.ServeRPC(m, config.Master)
+				data := make([]byte, blockSize)
+				g.Read(data)
 
-	for blockSize := 1048576; blockSize <= 1048576; blockSize *= 2 { // For each block size
-		config.GiftsBlockSize = blockSize
-
-		for fileSize := blockSize; fileSize <= blockSize*len(config.Storages); fileSize *= 2 { // For each file size
-			data := make([]byte, fileSize)
-			generate.NewGenerate().Read(data)
-
-			for nReplicas := 1; nReplicas <= len(config.Storages); nReplicas++ { // For the number of replicas
-				fName := fmt.Sprintf("file_%d_%d_%d", blockSize, fileSize, nReplicas)
-				err := NewClient([]string{config.Master}, config).Store(fName, uint(nReplicas), data)
+				err := c.Store(fName, 1, data)
 				test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
+			}
 
-				for nClients := 50; nClients < 51; nClients++ { // For the number of concurrent clients
+			// For nRuns
+			done := make(chan float64, nReaders)
+			runResults := make([]float64, 0)
+			for run := int64(0); run < nRuns; run++ {
+				fmt.Printf("\tRun %d\n", run)
+				for reader := 0; reader < nReaders; reader++ {
+					go func() {
+						client := NewClient([]string{config.Master}, config)
+						var nReads int64 = 0
+						data := make([]byte, blockSize)
 
-					var nTotalReads int64 = 0
-					for test := 0; test < int(nTests); test++ { // For the number of tests per run
-						done := make(chan int64, nClients)
+						startTime := time.Now()
+						for time.Since(startTime).Seconds() < runTime {
+							data, err = client.Read(fNames[nReads%1000])
+							nReads++
+						}
 
-						for nClient := 0; nClient < nClients; nClient++ {
-							go func() {
-								c := NewClient([]string{config.Master}, config)
-								var nReads int64 = 0
+						done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+						t.Log(len(data))
+					}()
+				}
 
-								for startTime := time.Now(); time.Since(startTime).Seconds() < testTime; {
-									c.Read(fName)
-									nReads++
-								}
+				var testResults float64 = 0
+				for reader := 0; reader < nReaders; reader++ {
+					testResults += <-done
+				}
 
-								done <- nReads
+				runResults = append(runResults, testResults)
+
+			}
+
+			mean := stat.Mean(runResults, nil)
+			stddev := stat.StdDev(runResults, nil)
+			msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
+			fmt.Println(msg)
+			writer.WriteString(msg + "\n")
+			writer.Flush()
+		}
+	}
+}
+
+func TestBenchmarkClient_OneFile(t *testing.T) {
+	t.Skip()
+	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
+	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+	defer file.Close()
+
+	msg := "Block Size (bytes), File Size (bytes), # of Clients, # of Replicas, Average Throughput (MBps), STD (MBps), %"
+	t.Log(msg)
+	writer.WriteString(msg + "\n")
+
+	config, err := config.LoadGet("../config/config.json")
+	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
+
+	g := generate.NewGenerate()
+	var nRuns int64 = 10
+	var runTime float64 = 10
+	// var nReaders int = 50
+	var blockSize int = config.GiftsBlockSize
+
+	for fileSize := blockSize; fileSize <= blockSize*len(config.Storages); fileSize += blockSize { // For each file size
+		for nReplicas := 1; nReplicas <= len(config.Storages); nReplicas++ { // For the number of replicas
+
+			// Create a set of blocks to read
+			c := NewClient([]string{config.Master}, config)
+			c.Logger.Enabled = false
+			fName := fmt.Sprintf("file_%d_%d_%d", blockSize, fileSize, nReplicas)
+			data := make([]byte, fileSize)
+			g.Read(data)
+			c.Store(fName, uint(nReplicas), data)
+			// test.AF(t, err == nil, fmt.Sprintf("Client.Store failed: %v", err))
+
+			for nReaders := 40; nReaders <= 40; nReaders++ {
+
+				// For nRuns
+				fmt.Printf("Starting test with file size %d and %d replicas\n", fileSize, nReplicas)
+				done := make(chan float64, nReaders)
+				runResults := make([]float64, 0)
+				for run := int64(0); run < nRuns; run++ {
+					fmt.Printf("\tRun %d\n", run)
+					for reader := 0; reader < nReaders; reader++ {
+						go func() {
+							client := NewClient([]string{config.Master}, config)
+							nReads := 0
+							data := make([]byte, fileSize)
+
+							startTime := time.Now()
+							defer func() {
+								done <- float64(nReads*fileSize) / time.Since(startTime).Seconds() / 1000000
 							}()
-						}
+							for time.Since(startTime).Seconds() < runTime {
+								data, err = client.Read(fName)
+								test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+								nReads++
+							}
 
-						for nClient := 0; nClient < nClients; nClient++ {
-							nTotalReads += <-done
-						}
-
+							t.Log(len(data))
+						}()
 					}
 
-					bytesRead := nTotalReads * int64(fileSize)
-					throughputBPS := float64(bytesRead) / (testTime * nTests)
-					throughputMBPS := throughputBPS / 1000000
-					result := fmt.Sprintf("%d,%d,%d,%d: %.2fMB/s", blockSize, fileSize, nReplicas, nClients, throughputMBPS)
-					writer.WriteString(result + "\n")
-					writer.Flush()
+					var testResults float64 = 0
+					for reader := 0; reader < nReaders; reader++ {
+						testResults += <-done
+					}
+
+					runResults = append(runResults, testResults)
+
 				}
+
+				mean := stat.Mean(runResults, nil)
+				stddev := stat.StdDev(runResults, nil)
+				msg := fmt.Sprintf("%d, %d, %d, %d, %f, %f, %.1f%%", blockSize, fileSize, nReaders, nReplicas, mean, stddev, 100*stddev/mean)
+				t.Log(msg)
+				writer.WriteString(msg + "\n")
+				writer.Flush()
+
 			}
 		}
+	}
+}
+
+func TestBenchmarkClient_OneFileWave(t *testing.T) {
+	t.Skip()
+	config, err := config.LoadGet("../config/config.json")
+	test.AF(t, err == nil, fmt.Sprintf("Error loading config: %v", err))
+
+	g := generate.NewGenerate()
+	fileSize := config.GiftsBlockSize
+	nReplicas := 1
+	runTime := 120
+	nFileOneReaders := 5
+	nFileTwoReaders := 5
+
+	// Create two files
+	fmt.Println("Creating files")
+	for i := 0; i < 2; i++ {
+		c := NewClient([]string{config.Master}, config)
+		fName := fmt.Sprintf("file_%d", i)
+
+		data := make([]byte, fileSize)
+		g.Read(data)
+		c.Store(fName, uint(nReplicas), data)
+	}
+
+	done := make(chan []int, nFileOneReaders+nFileTwoReaders)
+
+	// Create 5 readers for file one (read every 10ms)
+	fmt.Println("Creating readers for file one")
+	for i := 0; i < nFileOneReaders; i++ {
+		fName := "file_0"
+
+		go func() {
+			client := NewClient([]string{config.Master}, config)
+			data := make([]byte, fileSize)
+
+			nReads := 0
+			readArr := make([]int, 0, runTime)
+			timer := 1.0
+
+			defer func() { done <- readArr }()
+			for startTime := time.Now(); time.Since(startTime).Hours() < 2; {
+				data, err = client.Read(fName)
+				test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+				nReads++
+
+				if time.Since(startTime).Seconds() > timer {
+					readArr = append(readArr, nReads)
+					nReads = 0
+					timer++
+				}
+
+				if timer < 60 {
+					time.Sleep(100 * time.Millisecond)
+				}
+			}
+
+			t.Log(len(data))
+		}()
+	}
+
+	// Create 35 readers for file two
+	fmt.Println("Creating readers for file two")
+	for i := 0; i < nFileTwoReaders; i++ {
+		fName := "file_1"
+
+		go func() {
+			client := NewClient([]string{config.Master}, config)
+			data := make([]byte, fileSize)
+
+			nReads := 0
+			readArr := make([]int, 0, runTime)
+			timer := 1.0
+
+			defer func() { done <- readArr }()
+			for startTime := time.Now(); time.Since(startTime).Seconds() < float64(runTime); {
+				data, err = client.Read(fName)
+				test.AF(t, err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+				nReads++
+
+				if time.Since(startTime).Seconds() > timer {
+					readArr = append(readArr, nReads)
+					nReads = 0
+					timer++
+				}
+
+				if timer >= 60 {
+					time.Sleep(100 * time.Millisecond)
+				}
+			}
+
+			t.Log(len(data))
+		}()
+	}
+
+	// Wait for results
+	results := make([]int, runTime+5)
+	for i := 0; i < nFileOneReaders+nFileTwoReaders; i++ {
+		clientResult := <-done
+
+		for i := range clientResult {
+			results[i] += clientResult[i]
+		}
+	}
+
+	// Write results to a file
+	file, err := os.Create(fmt.Sprintf("./results-%d.csv", time.Now().UnixNano()))
+	test.AF(t, err == nil, fmt.Sprintf("Failed to create results file: %v", err))
+	writer := bufio.NewWriter(file)
+	defer file.Close()
+	defer writer.Flush()
+
+	for i := range results {
+		writer.WriteString(fmt.Sprintf("%d,%d\n", i, results[i]))
 	}
 }

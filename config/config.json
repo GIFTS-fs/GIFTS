@@ -1,13 +1,13 @@
 {
-	"DynamicReplicationEnabled": true,
+    "DynamicReplicationEnabled": true,
     "MasterRebalanceIntervalSec": 10,
-	"TrafficDecayCounterHalfLife": 5000.0,
-    "GiftsBlockSize": 8192,
+    "TrafficDecayCounterHalfLife": 30.0,
+    "GiftsBlockSize": 65536,
     "Storages": [
-        "localhost:4000",
-	    "localhost:4001",
-	    "localhost:4002",
-	    "localhost:4003"
+        "172.31.31.65:4000",
+        "172.31.23.208:4001",
+	"172.31.19.215:4002",
+	"172.31.27.63:4003"
     ],
-    "Master": "localhost:4004"
+    "Master": "172.31.12.82:4004"
 }

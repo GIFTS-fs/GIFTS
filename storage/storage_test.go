@@ -268,59 +268,62 @@ func TestBenchmarkStorage_Get(t *testing.T) {
 	g := generate.NewGenerate()
 	nRuns := int64(10)
 	runTime := float64(2)
-	nReaders := 50
+	// nReaders := 50
 	nBlocks := int64(10000)
 
 	// For block size
 	for blockSize := int64(1); blockSize <= 8; blockSize *= 2 {
 
-		// Create a set of blocks to read
-		s := NewStorage()
-		s.Logger.Enabled = false
-		ids := make([]string, nBlocks)
-		for n := int64(0); n < nBlocks; n++ {
-			id := fmt.Sprintf("id_%d", n)
-			ids[n] = id
+		for nReaders := 1; nReaders <= 100; nReaders++ {
 
-			kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
-			g.Read(kv.Data)
-			s.Set(&kv, nil)
-		}
+			// Create a set of blocks to read
+			s := NewStorage()
+			s.Logger.Enabled = false
+			ids := make([]string, nBlocks)
+			for n := int64(0); n < nBlocks; n++ {
+				id := fmt.Sprintf("id_%d", n)
+				ids[n] = id
 
-		// For nRuns
-		done := make(chan float64, nReaders)
-		runResults := make([]float64, 0)
-		for run := int64(0); run < nRuns; run++ {
-			for reader := 0; reader < nReaders; reader++ {
-				go func() {
-					data := new(gifts.Block)
-					nReads := int64(0)
-
-					startTime := time.Now()
-					for time.Since(startTime).Seconds() < runTime {
-						s.Get(ids[nReads%nBlocks], data)
-						nReads++
-					}
-
-					done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
-					t.Log(len(*data))
-				}()
+				kv := structure.BlockKV{ID: id, Data: gifts.Block(make([]byte, blockSize))}
+				g.Read(kv.Data)
+				s.Set(&kv, nil)
 			}
 
-			var testResults float64 = 0
-			for reader := 0; reader < nReaders; reader++ {
-				testResults += <-done
+			// For nRuns
+			done := make(chan float64, nReaders)
+			runResults := make([]float64, 0)
+			for run := int64(0); run < nRuns; run++ {
+				for reader := 0; reader < nReaders; reader++ {
+					go func() {
+						data := new(gifts.Block)
+						nReads := int64(0)
+
+						startTime := time.Now()
+						for time.Since(startTime).Seconds() < runTime {
+							s.Get(ids[nReads%nBlocks], data)
+							nReads++
+						}
+
+						done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
+						t.Log(len(*data))
+					}()
+				}
+
+				var testResults float64 = 0
+				for reader := 0; reader < nReaders; reader++ {
+					testResults += <-done
+				}
+
+				runResults = append(runResults, testResults)
+
 			}
 
-			runResults = append(runResults, testResults)
-
+			mean := stat.Mean(runResults, nil)
+			stddev := stat.StdDev(runResults, nil)
+			msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
+			t.Log(msg)
+			writer.WriteString(msg + "\n")
+			writer.Flush()
 		}
-
-		mean := stat.Mean(runResults, nil)
-		stddev := stat.StdDev(runResults, nil)
-		msg := fmt.Sprintf("%d, %d, %f, %f, %.1f%%", blockSize, nReaders, mean, stddev, 100*stddev/mean)
-		t.Log(msg)
-		writer.WriteString(msg + "\n")
-		writer.Flush()
 	}
 }
