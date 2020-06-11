@@ -82,31 +82,7 @@ func (m *Master) detectUnbalance() (toUp, toDown []*fileMeta) {
 	return
 }
 
-/*
- * Note on nextRR and removeRR:
- * With only 2 pointers, cannot tell if full and empty
- * But since there is no need for calling Next on file with 0 rFactor
- * next is fine with the simple check;
- * remove must be called after making sure there is at least one replica
- */
-
-// beg++ end
-// caller's responibility to check if the list is used up
-func (m *Master) nextReplicaBlockRR(fb *fileBlock) (s *storeMeta) {
-	s, fb.clockBeg = m.storages[fb.clockBeg], clockTick(fb.clockBeg, m.nStorage, 1)
-	return
-}
-
-// beg end++
-// no correctness guaranteed if called with 0 replicas (break the whole algorithm)
-func (m *Master) removeReplicaBlockRR(fb *fileBlock) (s *storeMeta) {
-	s, fb.clockEnd = m.storages[fb.clockEnd], clockTick(fb.clockEnd, m.nStorage, 1)
-	return
-}
-
 // enlistNewReplicas for file fm, returns a list of enlistment.
-// this list may contain duplicated storage, storage that already
-// stores the file, storage that already stores the block etc.
 func (m *Master) enlistNewReplicas(fm *fileMeta) (enlistments []*enlistment) {
 	if fm.nReplica == m.nStorage {
 		return nil

@@ -8,6 +8,7 @@ func nameBlock(fname string, i int) string {
 	return fname + strconv.FormatInt(int64(i), 16)
 }
 
+// panic if len == 0
 func clockTick(hand int, len int, amount int) int {
 	return (hand + amount) % len
 }

@@ -2,6 +2,7 @@
 	"DynamicReplicationEnabled": true,
 	"MaglevHashingMultipler": 100,
 	"BlockPlacementPolicy": 1,
+	"ReplicaPlacementPolicy": 1,
     "MasterRebalanceIntervalSec": 3,
 	"TrafficDecayCounterHalfLife": 999999999.0,
     "GiftsBlockSize": 8192,

@@ -31,6 +31,7 @@ type Config struct {
 	DynamicReplicationEnabled   bool
 	MaglevHashingMultipler      int
 	BlockPlacementPolicy        policy.BlockPlacementPolicy
+	ReplicaPlacementPolicy      policy.ReplicaPlacementPolicy
 }
 
 // Load the system configuration from the config file

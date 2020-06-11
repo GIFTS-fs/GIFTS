@@ -41,8 +41,8 @@ type Master struct {
 
 	/* Policy fields */
 
-	createHandLock         sync.Mutex
-	touchCreateHandClosure func(int) int
+	createHandLock      sync.Mutex
+	touchCreateHandUnit func(int) int
 
 	// Block placement policy 1: Round-robin
 	createHandRR int
@@ -50,8 +50,10 @@ type Master struct {
 	// Block placement policy 2: consist hashing + random permutation
 	placementEntry    []int
 	placementEntryLen int
-	// placementEntry[createHandPermu]: next backend to place a block
-	createHandPermu int
+	createHandPermu   int // placementEntry[createHandPermu]: next backend to place a block
+
+	nextReplicaOfUnit   func(*fileBlock) *storeMeta
+	removeReplicaOfUnit func(*fileBlock) *storeMeta
 }
 
 // NewMaster creates a new GIFTS Master.
@@ -60,7 +62,6 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
 		Logger:        gifts.NewLogger("Master", "local", false), // PRODUCTION: banish this
 		nStorage:      len(storageAddr),
-		createHandRR:  0,
 		storages:      make([]*storeMeta, len(storageAddr)),
 		trafficMedian: algorithm.NewRunningMedian(),
 		config:        config,
@@ -78,15 +79,17 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 	switch config.BlockPlacementPolicy {
 	case policy.BlockPlacementPolicyPermutation:
 		m.populateLookupTable(storageAddr)
-		m.touchCreateHandClosure = func(n int) (ret int) {
-			ret, m.createHandPermu = m.createHandPermu, clockTick(m.createHandPermu, m.nStorage, n)
-			return
-		}
+		m.touchCreateHandUnit = m.touchCreateHandUnitPermu
 	default:
-		m.touchCreateHandClosure = func(n int) (ret int) {
-			ret, m.createHandRR = m.createHandRR, clockTick(m.createHandRR, m.nStorage, n)
-			return
-		}
+		m.touchCreateHandUnit = m.touchCreateHandUnitRR
+	}
+
+	switch config.ReplicaPlacementPolicy {
+	case policy.ReplicaPlacementPolicyPermutation:
+		panic("Not implemented")
+	default:
+		m.nextReplicaOfUnit
+		m.removeReplicaOfUnit
 	}
 
 	return &m
