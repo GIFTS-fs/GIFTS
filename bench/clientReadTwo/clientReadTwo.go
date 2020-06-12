@@ -75,8 +75,9 @@ func main() {
 
 			defer func() { done <- readArr }()
 			for startTime := time.Now(); time.Since(startTime).Hours() < 2; {
-				_, err = client.Read(fName)
-				bench.ExitUnless(err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+				client.Read(fName)
+				// _, err = client.Read(fName)
+				// bench.ExitUnless(err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 				nReads++
 
 				if time.Since(startTime).Seconds() > timer {
@@ -109,8 +110,9 @@ func main() {
 
 			defer func() { done <- readArr }()
 			for startTime := time.Now(); time.Since(startTime).Seconds() < float64(runTime); {
-				_, err = client.Read(fName)
-				bench.ExitUnless(err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+				client.Read(fName)
+				// _, err = client.Read(fName)
+				// bench.ExitUnless(err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 				nReads++
 
 				if time.Since(startTime).Seconds() > timer {

@@ -78,8 +78,9 @@ func main() {
 								done <- float64(nReads*fileSize) / time.Since(startTime).Seconds() / 1000000
 							}()
 							for time.Since(startTime).Seconds() < runTime {
-								_, err = client.Read(fName)
-								bench.ExitUnless(err == nil, fmt.Sprintf("Client.Read failed: %v", err))
+								client.Read(fName)
+								// _, err = client.Read(fName)
+								// bench.ExitUnless(err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 								nReads++
 							}
 

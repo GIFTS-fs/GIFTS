@@ -61,8 +61,9 @@ func main() {
 				data := make([]byte, blockSize)
 				g.Read(data)
 
-				err := c.Store(fName, 1, data)
-				bench.ExitUnless(err == nil, fmt.Sprintf("Client.Store failed: %v", err))
+				c.Store(fName, 1, data)
+				// err := c.Store(fName, 1, data)
+				// bench.ExitUnless(err == nil, fmt.Sprintf("Client.Store failed: %v", err))
 			}
 
 			// For nRuns
@@ -78,7 +79,8 @@ func main() {
 
 						startTime := time.Now()
 						for time.Since(startTime).Seconds() < runTime {
-							_, err = client.Read(fNames[nReads%1000])
+							client.Read(fNames[nReads%1000])
+							// _, err = client.Read(fNames[nReads%1000])
 							nReads++
 						}
 
