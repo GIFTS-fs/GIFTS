@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -20,10 +21,15 @@ const (
 	runTime   = float64(3)
 )
 
+var (
+	configPath = flag.String("conf", bench.DefaultConfigPathClient, "config file")
+)
+
 func main() {
 	fmt.Println(benchMsg)
 
-	config, err := config.LoadGet("config.json")
+	flag.Parse()
+	config, err := config.LoadGet(*configPath)
 	bench.ExitUnless(err == nil, fmt.Sprintf("Error loading config: %v", err))
 
 	file, err := os.Create(fmt.Sprintf("results-%d.csv", time.Now().UnixNano()))
