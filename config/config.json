@@ -5,7 +5,7 @@
   "ReplicaPlacementPolicy": 1,
   "ReplicaPlacementPermuTableSize": 10,
   "MasterRebalanceIntervalSec": 10,
-  "TrafficDecayCounterHalfLife": 30.0,
+  "TrafficDecayCounterHalfLife": 1000000000.0,
   "GiftsBlockSize": 65536,
   "Storages": [
     "172.31.31.65:4000",

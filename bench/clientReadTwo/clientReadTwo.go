@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GIFTS-fs/GIFTS/bench"
+	"github.com/GIFTS-fs/GIFTS/client"
 	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/generate"
 )
@@ -42,7 +43,7 @@ func main() {
 	// Create two files
 	fmt.Println("Creating files")
 	for i := 0; i < 2; i++ {
-		c := NewClient([]string{config.Master}, config)
+		c := client.NewClient([]string{config.Master}, config)
 		fName := fmt.Sprintf("file_%d", i)
 
 		data := make([]byte, fileSize)
@@ -58,8 +59,8 @@ func main() {
 		fName := "file_0"
 
 		go func() {
-			client := NewClient([]string{config.Master}, config)
-			data := make([]byte, fileSize)
+			client := client.NewClient([]string{config.Master}, config)
+			// data := make([]byte, fileSize)
 
 			nReads := 0
 			readArr := make([]int, 0, runTime)
@@ -67,7 +68,7 @@ func main() {
 
 			defer func() { done <- readArr }()
 			for startTime := time.Now(); time.Since(startTime).Hours() < 2; {
-				data, err = client.Read(fName)
+				_, err = client.Read(fName)
 				bench.ExitUnless(err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 				nReads++
 
@@ -92,8 +93,8 @@ func main() {
 		fName := "file_1"
 
 		go func() {
-			client := NewClient([]string{config.Master}, config)
-			data := make([]byte, fileSize)
+			client := client.NewClient([]string{config.Master}, config)
+			// data := make([]byte, fileSize)
 
 			nReads := 0
 			readArr := make([]int, 0, runTime)
@@ -101,7 +102,7 @@ func main() {
 
 			defer func() { done <- readArr }()
 			for startTime := time.Now(); time.Since(startTime).Seconds() < float64(runTime); {
-				data, err = client.Read(fName)
+				_, err = client.Read(fName)
 				bench.ExitUnless(err == nil, fmt.Sprintf("Client.Read failed: %v", err))
 				nReads++
 

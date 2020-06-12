@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GIFTS-fs/GIFTS/bench"
+	"github.com/GIFTS-fs/GIFTS/client"
 	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/generate"
 	"gonum.org/v1/gonum/stat"
@@ -16,7 +17,7 @@ const (
 	benchName = "clientRead1000"
 	benchMsg  = "Running benchmark: create 1,000 files and clients continusouly read them"
 	nRuns     = int64(10)
-	runtTime  = float64(3)
+	runTime   = float64(3)
 )
 
 func main() {
@@ -42,7 +43,7 @@ func main() {
 	// For block size
 	for blockSize := int64(config.GiftsBlockSize); blockSize <= int64(config.GiftsBlockSize); blockSize *= 2 {
 		for nReaders := 40; nReaders <= 40; nReaders++ { // Create a set of blocks to read
-			c := NewClient([]string{config.Master}, config)
+			c := client.NewClient([]string{config.Master}, config)
 
 			// Create a set of blocks to read
 			fNames := make([]string, 1000)
@@ -64,18 +65,18 @@ func main() {
 				fmt.Printf("\tRun %d\n", run)
 				for reader := 0; reader < nReaders; reader++ {
 					go func() {
-						client := NewClient([]string{config.Master}, config)
+						client := client.NewClient([]string{config.Master}, config)
 						var nReads int64 = 0
-						data := make([]byte, blockSize)
+						// data := make([]byte, blockSize)
 
 						startTime := time.Now()
 						for time.Since(startTime).Seconds() < runTime {
-							data, err = client.Read(fNames[nReads%1000])
+							_, err = client.Read(fNames[nReads%1000])
 							nReads++
 						}
 
 						done <- float64(nReads*blockSize) / time.Since(startTime).Seconds() / 1000000
-						t.Log(len(data))
+						// t.Log(len(data))
 					}()
 				}
 

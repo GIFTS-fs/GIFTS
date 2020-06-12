@@ -1,7 +1,7 @@
 {
   "DynamicReplicationEnabled": true,
   "MaglevHashingMultipler": 100,
-  "BlockPlacementPolicy": 1,
+  "BlockPlacementPolicy": 2,
   "ReplicaPlacementPolicy": 1,
   "ReplicaPlacementPermuTableSize": 10,
   "MasterRebalanceIntervalSec": 10,
