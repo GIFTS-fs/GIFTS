@@ -1,16 +1,17 @@
 {
-	"DynamicReplicationEnabled": true,
-    "MaglevHashingMultipler": 100,
-	"BlockPlacementPolicy": 1,
-	"ReplicaPlacementPolicy": 1,
-    "MasterRebalanceIntervalSec": 10,
-	"TrafficDecayCounterHalfLife": 5000.0,
-    "GiftsBlockSize": 8192,
-    "Storages": [
-        "localhost:4000",
-	    "localhost:4001",
-	    "localhost:4002",
-	    "localhost:4003"
-    ],
-    "Master": "localhost:4004"
+  "DynamicReplicationEnabled": true,
+  "MaglevHashingMultipler": 100,
+  "BlockPlacementPolicy": 1,
+  "ReplicaPlacementPolicy": 1,
+  "ReplicaPlacementPermuTableSize": 10,
+  "MasterRebalanceIntervalSec": 10,
+  "TrafficDecayCounterHalfLife": 5000.0,
+  "GiftsBlockSize": 8192,
+  "Storages": [
+    "localhost:4000",
+    "localhost:4001",
+    "localhost:4002",
+    "localhost:4003"
+  ],
+  "Master": "localhost:4004"
 }

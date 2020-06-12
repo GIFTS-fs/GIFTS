@@ -2,14 +2,15 @@
 	"DynamicReplicationEnabled": true,
 	"MaglevHashingMultipler": 100,
 	"BlockPlacementPolicy": 1,
-	"ReplicaPlacementPolicy": 1,
+	"ReplicaPlacementPolicy": 2,
 	"ReplicaPlacementPermuTableSize": 10,
     "MasterRebalanceIntervalSec": 3,
 	"TrafficDecayCounterHalfLife": 999999999.0,
     "GiftsBlockSize": 8192,
     "Storages": [
-        "localhost:30506",
-        "localhost:30507"
+        "localhost:30600",
+        "localhost:30601",
+        "localhost:30602"
     ],
     "Master": "localhost:30505"
 }

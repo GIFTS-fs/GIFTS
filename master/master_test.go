@@ -259,7 +259,7 @@ func TestMaster_Create(t *testing.T) {
 	conf := config.Get()
 
 	verifyAssignments := func(m *Master, request structure.FileCreateReq, clock int, assignments []structure.BlockAssign) {
-		if conf.BlockPlacementPolicy == policy.BlockPlacementPolicyRR {
+		if conf.BlockPlacementPolicy == policy.BlockPlacementPolicyRR && conf.ReplicaPlacementPolicy == policy.ReplicaPlacementPolicyRR {
 			for i := range assignments {
 				blockID := fmt.Sprintf("%s%d", request.Fname, i)
 				af(blockID == assignments[i].BlockID, fmt.Sprintf("Expected block name %q, found %q", blockID, assignments[0].BlockID))

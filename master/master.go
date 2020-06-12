@@ -40,9 +40,13 @@ type Master struct {
 	trafficLock   sync.Mutex
 
 	/* Policy fields */
-
 	createHandLock      sync.Mutex
 	touchCreateHandUnit func(int) int
+
+	nextReplicaOfUnit   func(*fileBlock) *storeMeta
+	removeReplicaOfUnit func(*fileBlock) *storeMeta
+
+	// Note that policy 1,2 can share the same createHand
 
 	// Block placement policy 1: Round-robin
 	createHandRR int
@@ -52,8 +56,8 @@ type Master struct {
 	placementEntryLen int
 	createHandPermu   int // placementEntry[createHandPermu]: next backend to place a block
 
-	nextReplicaOfUnit   func(*fileBlock) *storeMeta
-	removeReplicaOfUnit func(*fileBlock) *storeMeta
+	// Replica placement policy 2: consist hashing + random permutation
+	replicaPermu [][]int
 }
 
 // NewMaster creates a new GIFTS Master.
@@ -86,10 +90,12 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 
 	switch config.ReplicaPlacementPolicy {
 	case policy.ReplicaPlacementPolicyPermutation:
-		panic("Not implemented")
+		m.buildReplicaPermuTable()
+		m.nextReplicaOfUnit = m.nextReplicaOfUnitPermu
+		m.removeReplicaOfUnit = m.removeReplicaOfUnitPermu
 	default:
-		m.nextReplicaOfUnit
-		m.removeReplicaOfUnit
+		m.nextReplicaOfUnit = m.nextReplicaOfUnitRR
+		m.removeReplicaOfUnit = m.removeReplicaOfUnitRR
 	}
 
 	return &m

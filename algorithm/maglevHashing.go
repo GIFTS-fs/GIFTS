@@ -1,29 +1,5 @@
 package algorithm
 
-import (
-	"hash/crc32"
-	"hash/fnv"
-)
-
-// just 2 random hashing functions from nowhere
-
-func populateHashing1(s string) int64 {
-	h := fnv.New32a()
-	h.Write([]byte(s))
-
-	// manual avalanche
-	firstH := h.Sum(nil)
-	h.Write(firstH)
-
-	return int64(h.Sum32())
-}
-
-func populateHashing2(s string) int64 {
-	h := crc32.NewIEEE()
-	h.Write([]byte(s))
-	return int64(h.Sum32())
-}
-
 // PopulateLookupTable for the Maglev Hashing algorithm
 func PopulateLookupTable(MaglevHashingMultipler int, N int, names []string) (entry []int) {
 	// heavily inspired by Maglev hashing lookup table Populate code
@@ -47,8 +23,8 @@ func PopulateLookupTable(MaglevHashingMultipler int, N int, names []string) (ent
 
 	// fill the permutation
 	for i, name := range names {
-		offset := int(populateHashing1(name) % int64(M))
-		skip := int(populateHashing2(name)%int64(M-1)) + 1
+		offset := int(HashingFnvTwice(name) % int64(M))
+		skip := int(HashingCrc32(name)%int64(M-1)) + 1
 		for j := 0; j < M; j++ {
 			permutation[i][j] = (offset + j*skip) % M
 		}

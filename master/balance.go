@@ -90,12 +90,10 @@ func (m *Master) enlistNewReplicas(fm *fileMeta) (enlistments []*enlistment) {
 
 	enlistments = make([]*enlistment, fm.nBlocks)
 
-	// Replica Block Placement Policy 1: RR
-	// must use in pair
 	for i, block := range fm.blocks {
 		enlistment := &enlistment{blockID: block.BlockID, fileBlock: block}
 		enlistment.src, _ = m.pickReplica(block)
-		enlistment.dst = m.nextReplicaBlockRR(block)
+		enlistment.dst = m.nextReplicaOf(block)
 		enlistments[i] = enlistment
 	}
 
@@ -110,11 +108,9 @@ func (m *Master) dischargeReplicas(fm *fileMeta) (enlistments []*enlistment) {
 
 	enlistments = make([]*enlistment, fm.nBlocks)
 
-	// Replica Block Placement Policy 1: Clock
-	// must use in pair
 	for i, block := range fm.blocks {
 		enlistment := &enlistment{blockID: block.BlockID, fileBlock: block}
-		enlistment.dst = m.removeReplicaBlockRR(block)
+		enlistment.dst = m.removeReplicaOf(block)
 		enlistments[i] = enlistment
 	}
 

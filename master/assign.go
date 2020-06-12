@@ -8,11 +8,31 @@ import (
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
-// populateLookupTable for placement policy 2,
+// populateLookupTable for block placement policy 2,
 // can potentially be called multiple times when the storage change in the future (?)
 func (m *Master) populateLookupTable(names []string) {
 	m.placementEntry = algorithm.PopulateLookupTable(m.config.MaglevHashingMultipler, len(names), names)
 	m.placementEntryLen = len(m.placementEntry)
+}
+
+// buildReplicaPermuTable for replica placement policy 2,
+// can potentially be called multiple times when the storage change in the future (?)
+func (m *Master) buildReplicaPermuTable() {
+	// init [1...n]
+	storageList := make([]int, m.nStorage)
+	for i := range storageList {
+		storageList[i] = i
+	}
+
+	// make a 2D array of random permutations of [1...n]
+	m.replicaPermu = make([][]int, m.config.ReplicaPlacementPermuTableSize)
+	for i := range m.replicaPermu {
+		rand.Shuffle(m.nStorage, func(i, j int) {
+			storageList[i], storageList[j] = storageList[j], storageList[i]
+		})
+		m.replicaPermu[i] = make([]int, m.nStorage)
+		copy(m.replicaPermu[i], storageList)
+	}
 }
 
 // touchCreateHand to get current index and move it by n (blocks*replicas).
@@ -50,32 +70,31 @@ func (m *Master) removeReplicaOf(fb *fileBlock) (s *storeMeta) {
  * remove must be called after making sure there is at least one replica
  */
 
-// WIP: replace all reference to the following 2 functions with
-// generic functions above, and work on line 107
-
 // beg++ end
 // caller's responibility to check if the list is used up
-func (m *Master) nextReplicaBlockRR(fb *fileBlock) (s *storeMeta) {
+func (m *Master) nextReplicaOfUnitRR(fb *fileBlock) (s *storeMeta) {
 	s, fb.clockBeg = m.storages[fb.clockBeg], clockTick(fb.clockBeg, m.nStorage, 1)
 	return
 }
 
 // beg end++
 // no correctness guaranteed if called with 0 replicas (break the whole algorithm)
-func (m *Master) removeReplicaBlockRR(fb *fileBlock) (s *storeMeta) {
+func (m *Master) removeReplicaOfUnitRR(fb *fileBlock) (s *storeMeta) {
 	s, fb.clockEnd = m.storages[fb.clockEnd], clockTick(fb.clockEnd, m.nStorage, 1)
 	return
 }
 
-// // nextCreateStoragePermu to be assigned for a new block,
-// // for placement policy 2: permutation.
-// // see nextCreateStorageRR for detail about idx and nextIdx
-// func (m *Master) nextCreateStoragePermu() (s *storeMeta, idx, nextIdx int) {
-// 	idx, m.createHandPermu = m.placementEntry[m.createHandPermu], clockTick(m.createHandPermu, m.placementEntryLen, 1)
-// 	s = m.storages[idx]
-// 	nextIdx = clockTick(idx, m.nStorage, 1)
-// 	return
-// }
+// beg++ end
+func (m *Master) nextReplicaOfUnitPermu(fb *fileBlock) (s *storeMeta) {
+	s, fb.clockBeg = m.storages[m.replicaPermu[fb.permuIndex][fb.clockBeg]], clockTick(fb.clockBeg, m.nStorage, 1)
+	return
+}
+
+// beg end++
+func (m *Master) removeReplicaOfUnitPermu(fb *fileBlock) (s *storeMeta) {
+	s, fb.clockEnd = m.storages[m.replicaPermu[fb.permuIndex][fb.clockEnd]], clockTick(fb.clockEnd, m.nStorage, 1)
+	return
+}
 
 // createAssignments for the request, assume all arguments are valid to the best knowledge of the caller
 func (m *Master) createAssignments(req *structure.FileCreateReq, nBlocks int) (assignments []*fileBlock, nReplica int, blockAssignments []structure.BlockAssign) {
@@ -92,7 +111,7 @@ func (m *Master) createAssignments(req *structure.FileCreateReq, nBlocks int) (a
 
 	for i := range assignments {
 		bID := nameBlock(req.Fname, i)
-		assignments[i] = newFileBlock(bID)
+		assignments[i] = newFileBlock(m.config, bID)
 		blockAssignments[i].BlockID = bID
 	}
 
@@ -104,27 +123,55 @@ func (m *Master) createAssignments(req *structure.FileCreateReq, nBlocks int) (a
 	switch m.config.BlockPlacementPolicy {
 	case policy.BlockPlacementPolicyPermutation:
 		// New block placement policy 2: Permutation
+		handIdx := m.touchCreateHand(nBlocks)
+
+		for i := range assignments {
+			// m.Logger.Printf("THRASHING1 Permu block %q is assigned to %v", assignments[i].BlockID, m.placementEntry[handIdx])
+
+			assignments[i].clockEnd = m.placementEntry[handIdx]
+			assignments[i].clockBeg = m.placementEntry[handIdx]
+			handIdx = clockTick(handIdx, m.placementEntryLen, 1)
+
+			for j := 0; j < nReplica; j++ {
+				store := m.nextReplicaOf(assignments[i])
+				// m.Logger.Printf("    THRASHING1 block %q replica %v is assigned to %q", assignments[i].BlockID, j, store.Addr)
+				assignments[i].addReplica(store)
+				blockAssignments[i].Replicas = append(blockAssignments[i].Replicas, store.Addr)
+			}
+		}
 
 	default: // use RR as default
 		// New block placement policy 1: Round-robin
 
-		// this variation of policy moves the pointer
+		// legacy variation of policy moves the pointer
 		// for each replica of each block.
 		// (in the for loop, the clockTick() call)
 
-		// another variation (not implemented)
-		// can simply move the pointer for each block.
+		// new variation
+		// simply move the pointer for each block.
 		// (clockTick(1) for each block)
 
-		handIdx := m.touchCreateHand(nBlocks * nReplica)
+		var amount, subamount int
+		if m.config.ReplicaPlacementPolicy == policy.ReplicaPlacementPolicyRR {
+			// For legacy code, change in future
+			amount = nBlocks * nReplica
+			subamount = nReplica
+		} else {
+			amount = nBlocks
+			subamount = 1
+		}
+
+		handIdx := m.touchCreateHand(amount)
 
 		for i := range assignments {
+			// m.Logger.Printf("THRASHING1 RR block %q is assigned to %v", assignments[i].BlockID, handIdx)
 			assignments[i].clockEnd = handIdx
 			assignments[i].clockBeg = handIdx
-			handIdx = clockTick(handIdx, m.nStorage, nReplica)
+			handIdx = clockTick(handIdx, m.nStorage, subamount)
 
 			for j := 0; j < nReplica; j++ {
-				store := m.nextReplicaBlockRR(assignments[i])
+				store := m.nextReplicaOf(assignments[i])
+				// m.Logger.Printf("    THRASHING1 block %q replica %v is assigned to %q", assignments[i].BlockID, j, store.Addr)
 				assignments[i].addReplica(store)
 				blockAssignments[i].Replicas = append(blockAssignments[i].Replicas, store.Addr)
 			}

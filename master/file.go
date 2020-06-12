@@ -5,6 +5,8 @@ import (
 
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/algorithm"
+	"github.com/GIFTS-fs/GIFTS/config"
+	"github.com/GIFTS-fs/GIFTS/policy"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
@@ -21,15 +23,19 @@ type fileBlock struct {
 	// [clockEnd ... clockBeg->]
 	clockBeg int // first replica available to use
 	clockEnd int // first replica assigned
-	// must be used together with clock assignmen policy
-	// otherwise invariant breaks
 
-	// a list of storages that stores no block of this file
-	// untouched []*storeMeta
+	// Replica block placement policy 2: permutation
+	permuIndex int
+	// reuse clockBeg and clockEnd
 }
 
-func newFileBlock(bID string) *fileBlock {
-	return &fileBlock{BlockID: bID, rMap: make(map[string]*storeMeta)}
+func newFileBlock(conf *config.Config, bID string) *fileBlock {
+	fb := &fileBlock{BlockID: bID, rMap: make(map[string]*storeMeta)}
+	// TODO: improve this, find better way to pass arguments
+	if conf.ReplicaPlacementPolicy == policy.ReplicaPlacementPolicyPermutation {
+		fb.permuIndex = int(algorithm.HashingFnvTwice(bID)) % conf.ReplicaPlacementPermuTableSize
+	}
+	return fb
 }
 
 func (fb *fileBlock) addReplica(r *storeMeta) {
