@@ -224,15 +224,13 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	// don't let this block the critical path
 	go func() {
 		// TODO: shall remove the lock since we don't care the exact data?
-		fm.trafficLock.Lock()
-		prev, curr := fm.trafficCounter.GetRaw(), fm.trafficCounter.Hit()
-		fm.trafficLock.Unlock()
-
-		// m.Logger.Printf("DEBUG: traffic for %q: prev: %v curr: %v\n", fm.fName, prev, curr)
 
 		m.trafficLock.Lock()
+		prev, curr := fm.trafficCounter.GetRaw(), fm.trafficCounter.Hit()
 		m.trafficMedian.Update(prev, curr)
 		m.trafficLock.Unlock()
+
+		// m.Logger.Printf("DEBUG: traffic for %q: prev: %v curr: %v\n", fm.fName, prev, curr)
 	}()
 
 	m.Logger.Printf("Master.Lookup(%q) => %v", fName, *ret)

@@ -1,8 +1,6 @@
 package master
 
 import (
-	"sync"
-
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/algorithm"
 	"github.com/GIFTS-fs/GIFTS/config"
@@ -85,7 +83,7 @@ type fileMeta struct {
 	nReplica int          // real number of replica
 	blocks   []*fileBlock // Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) >= 1
 
-	trafficLock    sync.Mutex
+	// trafficLock    sync.Mutex
 	trafficCounter *algorithm.DecayCounter // expontionally decaying read counter
 }
 

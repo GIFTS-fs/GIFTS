@@ -39,13 +39,10 @@ func (m *Master) detectUnbalance() (toUp, toDown []*fileMeta) {
 	m.fMap.Range(func(key interface{}, value interface{}) bool {
 		fm := value.(*fileMeta)
 
-		fm.trafficLock.Lock()
-		prev, tempature := fm.trafficCounter.GetRaw(), fm.trafficCounter.Get()
-		fm.trafficLock.Unlock()
-
 		// TODO: figure out better ways to put the critical sections
 		// and data read (currentMedian is the median before the for loop currently)
 		m.trafficLock.Lock()
+		prev, tempature := fm.trafficCounter.GetRaw(), fm.trafficCounter.Get()
 		m.trafficMedian.Update(prev, tempature)
 		m.trafficLock.Unlock()
 
