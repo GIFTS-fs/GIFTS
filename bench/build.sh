@@ -11,6 +11,6 @@ done
 
 echo "Finish building benchmarks"
 echo
-echo "    Usage: ./run-<some-benchmark> -conf <some-non-default-config-file>.json"
+echo "    Usage: ./run-<some-benchmark> -label <some-label> -conf <some-non-default-config-file>.json"
 echo "    The benchmarks (run as clients) use \"config-client.json\" by default"
 echo

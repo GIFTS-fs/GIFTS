@@ -21,6 +21,7 @@ const (
 
 var (
 	configPath = flag.String("conf", bench.DefaultConfigPathClient, "config file")
+	label      = flag.String("label", "", "label")
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 	// config, err := config.LoadGet(*configPath)
 	// bench.ExitUnless(err == nil, fmt.Sprintf("Error loading config: %v", err))
 
-	file, err := os.Create(fmt.Sprintf("results-%d.csv", time.Now().UnixNano()))
+	file, err := os.Create(fmt.Sprintf("%vresults-%d.csv", *label, time.Now().UnixNano()))
 	bench.ExitUnless(err == nil, fmt.Sprintf("Failed to create results file: %v", err))
 	defer file.Close()
 
