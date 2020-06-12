@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	configPath = flag.String("conf", bench.DefaultConfigPathClient "config file")
+	configPath = flag.String("conf", bench.DefaultConfigPathClient, "config file")
 	label      = flag.String("label", "", "label")
 )
 
