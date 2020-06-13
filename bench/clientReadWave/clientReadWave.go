@@ -36,9 +36,9 @@ const (
 	seed2         = 859742921935149993
 	randPickUpper = 4
 
-	runTime           = 120 // sec
-	stateChangePeriod = 8   // sec
-	jobPeriod         = 300 // mille sec
+	runTime           = 120 // s
+	stateChangePeriod = 8   // s
+	jobPeriod         = 10  // ms
 )
 
 var (
@@ -139,7 +139,7 @@ func doReading(files []string, r *rand.Rand, readers []*client.Client) {
 				case 1:
 					currentState = 1
 				default:
-					idx = rand.Intn(len(files))
+					idx = r.Intn(len(files))
 					currentState = 2
 				}
 				// use the address of the first reader to distinguish groups
@@ -180,9 +180,6 @@ func main() {
 	//       normal read: randomly pick a file to read if 1
 	//       idle: do nothing if 0
 
-	// seed the rand to randomly pick a file for non-hot read
-	rand.Seed(time.Now().UnixNano())
-
 	// create 2 seeded rand
 	rand1 := rand.New(rand.NewSource(seed1))
 	rand2 := rand.New(rand.NewSource(seed2))
@@ -198,10 +195,10 @@ func main() {
 	createrClient := client.NewClient([]string{config.Master}, config)
 
 	files := createFiles(createrClient, config, "")
-	rand.Shuffle(len(files), func(i, j int) {
-		files[i], files[j] = files[j], files[i]
-	})
 	fmt.Printf("Created files: %v\n", files)
+
+	// seed the rand to randomly pick a file for non-hot read
+	rand.Seed(time.Now().UnixNano())
 
 	fmt.Printf("Creating 2 sub-threads for reading\n")
 	wg.Add(2)
