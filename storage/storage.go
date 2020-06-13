@@ -1,11 +1,14 @@
 package storage
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"net/http"
 	"net/rpc"
+	"os"
 	"sync"
+	"time"
 
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/structure"
@@ -14,6 +17,8 @@ import (
 const (
 	// RPCPathStorage the path that Storage listens to
 	RPCPathStorage = "/_gifts_storage_"
+	// a safe measurement
+	maxStatDataSize = 500
 )
 
 // Storage is a concurrency-safe key-value store.
@@ -22,6 +27,14 @@ type Storage struct {
 	blocks     sync.Map
 	blocksLock sync.RWMutex
 	rpc        sync.Map
+
+	// stat
+	StatEnabled     bool
+	statLastCollect time.Time
+	statData        []int
+	statCounter     int
+	statCounterLock sync.Mutex
+	statDone        chan bool
 }
 
 // NewStorage creates a new storage node
@@ -96,6 +109,8 @@ func (s *Storage) Set(kv *structure.BlockKV, ignore *bool) error {
 
 // Get gets the data associated with the block's ID
 func (s *Storage) Get(id string, ret *gifts.Block) error {
+	go s.hitStat()
+
 	// Clear the return value
 	*ret = make([]byte, 0)
 
@@ -161,4 +176,67 @@ func (s *Storage) Unset(id string, ignore *bool) error {
 
 	s.Logger.Printf("Storage.Unset(%q) => success", id)
 	return nil
+}
+
+func (s *Storage) hitStat() {
+	if s.StatEnabled {
+		s.statCounterLock.Lock()
+		defer s.statCounterLock.Unlock()
+		s.statCounter++
+	}
+}
+
+// WARN: the counter are by no means accurate
+// due to many a context switch envolved
+func (s *Storage) collectStat() {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.statDone:
+			return
+		case <-ticker.C:
+			if len(s.statData) >= maxStatDataSize {
+				return
+			}
+			s.statCounterLock.Lock()
+			s.statData, s.statCounter = append(s.statData, s.statCounter), 0
+			s.statCounterLock.Unlock()
+		}
+	}
+}
+
+func (s *Storage) writeStat() {
+	file, err := os.Create(fmt.Sprintf("stat-%d.csv", time.Now().UnixNano()))
+	if err != nil {
+		s.Logger.Printf("Failed to create stat file: %v", err)
+		return
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+
+	writer.WriteString("Time,Requests/s\n")
+
+	for i, s := range s.statData {
+		writer.WriteString(fmt.Sprintf("%v,%v\n", i, s))
+	}
+
+}
+
+// TrapSignal traps the system signal and send true to done
+func (s *Storage) TrapSignal(sigsChan chan os.Signal, done chan bool) {
+	<-sigsChan
+
+	// non-blocking send
+	select {
+	case s.statDone <- true:
+	default:
+	}
+
+	s.writeStat()
+
+	done <- true
 }

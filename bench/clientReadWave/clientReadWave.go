@@ -20,10 +20,10 @@ const (
 	// nRounds = 3
 
 	// 1 block
-	nCreateTiny = 5
+	nCreateTiny = 8
 	// 2 blocks
-	nCreateMedium = 6
-	// 5 blocks
+	nCreateMedium = 10
+	// 3 blocks
 	nCreateLarge = 6
 	// n_storage blocks
 	nCreateColossal = 2
@@ -72,7 +72,7 @@ func createFiles(c *client.Client, config *config.Config, fNamePrefix string) (f
 		files = append(files, fName)
 	}
 	for i := 0; i < nCreateLarge; i++ {
-		fileSize := 5 * config.GiftsBlockSize
+		fileSize := 3 * config.GiftsBlockSize
 		fName := fmt.Sprintf("%v-large-%v", fNamePrefix, i)
 
 		data := make([]byte, fileSize)

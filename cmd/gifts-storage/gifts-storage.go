@@ -3,16 +3,20 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/GIFTS-fs/GIFTS/config"
 	"github.com/GIFTS-fs/GIFTS/storage"
 )
 
 var (
-	configPath = flag.String("conf", config.GIFTSDefaultConfigPath(), "config file")
-	verbose    = flag.Bool("v", false, "verbose logging")
-	readyAddr  = flag.String("ready", "", "ready notification address")
-	iStorage   = flag.Int("s", -1, "The index of the Storage instance to start")
+	configPath  = flag.String("conf", config.GIFTSDefaultConfigPath(), "config file")
+	verbose     = flag.Bool("v", false, "verbose logging")
+	readyAddr   = flag.String("ready", "", "ready notification address")
+	iStorage    = flag.Int("s", -1, "The index of the Storage instance to start")
+	statEnabled = flag.Bool("stat", false, "stat collecting enable")
 )
 
 func main() {
@@ -42,5 +46,18 @@ func main() {
 	log.Printf("Starting Storage at address %q\n", addr)
 	s := storage.NewStorage()
 	s.Logger.Enabled = *verbose
-	storage.ServeRPCBlock(s, addr, nil)
+
+	if *statEnabled {
+		s.StatEnabled = true
+
+		sigsChan := make(chan os.Signal, 1)
+		signal.Notify(sigsChan, syscall.SIGINT, syscall.SIGTERM)
+
+		done := make(chan bool, 1)
+		go s.TrapSignal(sigsChan, done)
+		go storage.ServeRPCBlock(s, addr, nil)
+		<-done
+	} else {
+		storage.ServeRPCBlock(s, addr, nil)
+	}
 }
