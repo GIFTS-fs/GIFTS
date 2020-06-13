@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"math/rand"
-	"os"
 	"sync"
 	"time"
 
@@ -162,14 +160,14 @@ func main() {
 	config, err := config.LoadGet(*configPath)
 	bench.ExitUnless(err == nil, fmt.Sprintf("Error loading config: %v", err))
 
-	file, err := os.Create(fmt.Sprintf("%vresults-%d.csv", *label, time.Now().UnixNano()))
-	bench.ExitUnless(err == nil, fmt.Sprintf("Failed to create results file: %v", err))
-	defer file.Close()
+	// file, err := os.Create(fmt.Sprintf("%vresults-%d.csv", *label, time.Now().UnixNano()))
+	// bench.ExitUnless(err == nil, fmt.Sprintf("Failed to create results file: %v", err))
+	// defer file.Close()
 
-	writer := bufio.NewWriter(file)
-	defer writer.Flush()
+	// writer := bufio.NewWriter(file)
+	// defer writer.Flush()
 
-	writer.WriteString("Time,MB/s")
+	// writer.WriteString("Time,MB/s")
 
 	// Run nRounds rounds
 	// For each round:
