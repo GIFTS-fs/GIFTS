@@ -32,7 +32,7 @@ const (
 
 	rFactor = uint(1)
 
-	nReadersPerGroup = 5
+	nReadersPerGroup = 40
 
 	seed1         = 725695988451494264
 	seed2         = 859742921935149993
@@ -40,7 +40,7 @@ const (
 
 	runTime           = 120 // sec
 	stateChangePeriod = 8   // sec
-	jobPeriod         = 5   // sec
+	jobPeriod         = 300 // mille sec
 )
 
 var (
@@ -122,7 +122,7 @@ func doReading(files []string, r *rand.Rand, readers []*client.Client) {
 				case 2:
 					r.Read(files[idx])
 				}
-				time.Sleep(time.Second)
+				time.Sleep(jobPeriod * time.Millisecond)
 			}
 		}(r)
 	}
