@@ -188,7 +188,7 @@ func (s *Storage) hitStat() {
 
 // WARN: the counter are by no means accurate
 // due to many a context switch envolved
-func (s *Storage) collectStat() {
+func (s *Storage) CollectStat() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 

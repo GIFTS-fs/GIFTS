@@ -56,6 +56,7 @@ func main() {
 		done := make(chan bool, 1)
 		go s.TrapSignal(sigsChan, done)
 		go storage.ServeRPCBlock(s, addr, nil)
+		go s.CollectStat()
 		<-done
 	} else {
 		storage.ServeRPCBlock(s, addr, nil)
