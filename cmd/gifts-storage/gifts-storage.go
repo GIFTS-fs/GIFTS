@@ -17,6 +17,7 @@ var (
 	readyAddr   = flag.String("ready", "", "ready notification address")
 	iStorage    = flag.Int("s", -1, "The index of the Storage instance to start")
 	statEnabled = flag.Bool("stat", false, "stat collecting enable")
+	statPrefix  = flag.String("prefix", "", "stat file prefix")
 )
 
 func main() {
@@ -49,6 +50,7 @@ func main() {
 
 	// TODO: instead of awkward signal handling
 	// can easily write to disk per 1 sec in non-critical path
+	// but slowing the system down?
 	if *statEnabled {
 		s.StatEnabled = true
 
@@ -56,7 +58,7 @@ func main() {
 		signal.Notify(sigsChan, syscall.SIGINT, syscall.SIGTERM)
 
 		done := make(chan bool, 1)
-		go s.TrapSignal(sigsChan, done)
+		go s.TrapSignal(*statPrefix, sigsChan, done)
 		go storage.ServeRPCBlock(s, addr, nil)
 		go s.CollectStat()
 		<-done

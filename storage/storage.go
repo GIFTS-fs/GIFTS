@@ -207,8 +207,8 @@ func (s *Storage) CollectStat() {
 	}
 }
 
-func (s *Storage) writeStat() {
-	file, err := os.Create(fmt.Sprintf("stat-%d.csv", time.Now().UnixNano()))
+func (s *Storage) writeStat(prefix string) {
+	file, err := os.Create(fmt.Sprintf("%vstat-%d.csv", prefix, time.Now().UnixNano()))
 	if err != nil {
 		s.Logger.Printf("Failed to create stat file: %v", err)
 		return
@@ -227,7 +227,7 @@ func (s *Storage) writeStat() {
 }
 
 // TrapSignal traps the system signal and send true to done
-func (s *Storage) TrapSignal(sigsChan chan os.Signal, done chan bool) {
+func (s *Storage) TrapSignal(prefix string, sigsChan chan os.Signal, done chan bool) {
 	<-sigsChan
 
 	// non-blocking send
@@ -236,7 +236,7 @@ func (s *Storage) TrapSignal(sigsChan chan os.Signal, done chan bool) {
 	default:
 	}
 
-	s.writeStat()
+	s.writeStat(prefix)
 
 	done <- true
 }

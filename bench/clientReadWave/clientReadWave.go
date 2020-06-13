@@ -42,9 +42,10 @@ const (
 )
 
 var (
+	// nCreateTotal = nCreateTiny + nCreateMedium + nCreateLarge + nCreateColossal
+
 	configPath = flag.String("conf", bench.DefaultConfigPathClient, "config file")
 	label      = flag.String("label", "", "label")
-	// nCreateTotal = nCreateTiny + nCreateMedium + nCreateLarge + nCreateColossal
 )
 
 var wg sync.WaitGroup
