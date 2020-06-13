@@ -41,7 +41,7 @@ func main() {
 	writer := bufio.NewWriter(file)
 	defer writer.Flush()
 
-	writer.WriteString("Time,MB/s")
+	writer.WriteString("Time,MB/s\n")
 
 	g := generate.NewGenerate()
 
