@@ -47,6 +47,8 @@ func main() {
 	s := storage.NewStorage()
 	s.Logger.Enabled = *verbose
 
+	// TODO: instead of awkward signal handling
+	// can easily write to disk per 1 sec in non-critical path
 	if *statEnabled {
 		s.StatEnabled = true
 
