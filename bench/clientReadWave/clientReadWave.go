@@ -141,6 +141,7 @@ func doReading(files []string, r *rand.Rand, readers []*client.Client) {
 					currentState = 1
 				default:
 					idx = r.Intn(len(files))
+					fmt.Printf("    [Group(%v)] focus reading file %q\n", &readers[0], files[idx])
 					currentState = 2
 				}
 				// use the address of the first reader to distinguish groups
