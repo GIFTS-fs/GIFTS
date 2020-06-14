@@ -1,0 +1,2 @@
+Block Size (bytes), # of Readers, Average Throughput (MBps), STD (MBps), %
+65536, 40, 95.848011, 7.550968, 7.9%
