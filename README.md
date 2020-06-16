@@ -1,4 +1,4 @@
-# Abstract
+# README
 
 We propose a design for
 GIFTS (Go Immutable File Transmission System),
@@ -36,3 +36,6 @@ consuming nearly the entire available network bandwidth.
 Our results indicate that GIFTS is highly scalable and
 achieves a nearly ideal linear increase in network bandwidth usage
 as hot files are dynamically replicated.
+
+A style-free coding documentation can be found at [here](https://gifts-fs.github.io/GIFTS/index.html).
+To have the full `godoc` experience, feel free to clone the repo and start `godoc` server locally.
