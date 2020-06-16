@@ -1,0 +1,540 @@
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script type='text/javascript'>
+	document.ANALYSIS_DATA = ;
+	document.CALLGRAPH = ;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "."</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+				<dd><a href="#pkg-subdirectories">Subdirectories</a></dd>
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				
+				
+			</div>
+		</div>
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+			
+			
+				
+				<dd><a href="#NBlocks">func NBlocks(blockSize, fsize int) (n int)</a></dd>
+			
+			
+				
+				<dd><a href="#Block">type Block</a></dd>
+				
+				
+			
+				
+				<dd><a href="#Logger">type Logger</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#NewLogger">func NewLogger(name, addr string, enabled bool) *Logger</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Logger.Printf">func (t *Logger) Printf(format string, v ...interface{})</a></dd>
+				
+			
+				
+				<dd><a href="#RPCCall">type RPCCall</a></dd>
+				
+				
+			
+				
+				<dd><a href="#RPCClient">type RPCClient</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#NewRPCClient">func NewRPCClient(addr string, path string) *RPCClient</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RPCClient.Call">func (f *RPCClient) Call(call RPCCall) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RPCClient.Close">func (f *RPCClient) Close() (err error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RPCClient.Dial">func (f *RPCClient) Dial() (err error)</a></dd>
+				
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h3>Package files</h3>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="/src/target/block.go">block.go</a>
+			
+				<a href="/src/target/gifts.go">gifts.go</a>
+			
+				<a href="/src/target/logger.go">logger.go</a>
+			
+				<a href="/src/target/rpc.go">rpc.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		<div id="pkg-callgraph" class="toggle" style="display: none">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Internal Call Graph section">Internal call graph ▹</h2>
+		</div> <!-- .expanded -->
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Internal Call Graph section">Internal call graph ▾</h2>
+			<p>
+			  In the call graph viewer below, each node
+			  is a function belonging to this package
+			  and its children are the functions it
+			  calls&mdash;perhaps dynamically.
+			</p>
+			<p>
+			  The root nodes are the entry points of the
+			  package: functions that may be called from
+			  outside the package.
+			  There may be non-exported or anonymous
+			  functions among them if they are called
+			  dynamically from another package.
+			</p>
+			<p>
+			  Click a node to visit that function's source code.
+			  From there you can visit its callers by
+			  clicking its declaring <code>func</code>
+			  token.
+			</p>
+			<p>
+			  Functions may be omitted if they were
+			  determined to be unreachable in the
+			  particular programs or tests that were
+			  analyzed.
+			</p>
+			<!-- Zero means show all package entry points. -->
+			<ul style="margin-left: 0.5in" id="callgraph-0" class="treeview"></ul>
+		</div>
+		</div> <!-- #pkg-callgraph -->
+
+		
+		
+		
+			
+			
+			<h2 id="NBlocks">func <a href="/src/target/block.go?s=252:294#L1">NBlocks</a>
+				<a class="permalink" href="#NBlocks">&#xb6;</a>
+			</h2>
+			<pre>func NBlocks(blockSize, fsize <a href="/pkg/builtin/#int">int</a>) (n <a href="/pkg/builtin/#int">int</a>)</pre>
+			<p>
+NBlocks calculates the number of GIFTS blocks for given file size
+</p>
+
+			
+			
+
+		
+		
+			
+			
+			<h2 id="Block">type <a href="/src/target/block.go?s=164:181#L1">Block</a>
+				<a class="permalink" href="#Block">&#xb6;</a>
+			</h2>
+			<p>
+Block is one fixed-size block stored by GIFTS,
+WARN: the performance depends on the slice type,
+it must be not raw data to be copied around
+</p>
+
+			<pre>type Block []<a href="/pkg/builtin/#byte">byte</a></pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="Logger">type <a href="/src/target/logger.go?s=519:604#L19">Logger</a>
+				<a class="permalink" href="#Logger">&#xb6;</a>
+			</h2>
+			<p>
+Logger is a wrapper for log.Logger.
+WARN: even if disabled, the string formating (perhaps) still takes CPU shares
+</p>
+
+			<pre>type Logger struct {
+<span id="Logger.Enabled"></span>    Enabled <a href="/pkg/builtin/#bool">bool</a> <span class="comment">// struct-level log control</span>
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="NewLogger">func <a href="/src/target/logger.go?s=821:876#L32">NewLogger</a>
+					<a class="permalink" href="#NewLogger">&#xb6;</a>
+				</h3>
+				<pre>func NewLogger(name, addr <a href="/pkg/builtin/#string">string</a>, enabled <a href="/pkg/builtin/#bool">bool</a>) *<a href="#Logger">Logger</a></pre>
+				<p>
+NewLogger is the constructor for gifts.Logger
+</p>
+
+				
+				
+			
+
+			
+				
+				<h3 id="Logger.Printf">func (*Logger) <a href="/src/target/logger.go?s=641:697#L25">Printf</a>
+					<a class="permalink" href="#Logger.Printf">&#xb6;</a>
+				</h3>
+				<pre>func (t *<a href="#Logger">Logger</a>) Printf(format <a href="/pkg/builtin/#string">string</a>, v ...interface{})</pre>
+				<p>
+Printf of logger if log enabled
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="RPCCall">type <a href="/src/target/rpc.go?s=80:116#L1">RPCCall</a>
+				<a class="permalink" href="#RPCCall">&#xb6;</a>
+			</h2>
+			<p>
+RPCCall is the ingredient of a Request
+</p>
+
+			<pre>type RPCCall func(*<a href="/pkg/net/rpc/">rpc</a>.<a href="/pkg/net/rpc/#Client">Client</a>) <a href="/pkg/builtin/#error">error</a></pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="RPCClient">type <a href="/src/target/rpc.go?s=445:563#L7">RPCClient</a>
+				<a class="permalink" href="#RPCClient">&#xb6;</a>
+			</h2>
+			<p>
+RPCClient is the client for RPC Calls that
+delays the connecting until first request,
+caches the connection,
+and automatically reconnects after failure.
+user of RPCClient can have guaranteed connection
+as long as the server at addr is alive
+without worrying about the liveness of the underneath connection
+</p>
+
+			<pre>type RPCClient struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="NewRPCClient">func <a href="/src/target/rpc.go?s=608:662#L15">NewRPCClient</a>
+					<a class="permalink" href="#NewRPCClient">&#xb6;</a>
+				</h3>
+				<pre>func NewRPCClient(addr <a href="/pkg/builtin/#string">string</a>, path <a href="/pkg/builtin/#string">string</a>) *<a href="#RPCClient">RPCClient</a></pre>
+				<p>
+NewRPCClient constructor for RPCFactory
+</p>
+
+				
+				
+			
+
+			
+				
+				<h3 id="RPCClient.Call">func (*RPCClient) <a href="/src/target/rpc.go?s=1969:2013#L67">Call</a>
+					<a class="permalink" href="#RPCClient.Call">&#xb6;</a>
+				</h3>
+				<pre>func (f *<a href="#RPCClient">RPCClient</a>) Call(call <a href="#RPCCall">RPCCall</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Call the RPCCall.
+Example usage: Call(func(r *rpc.Client) error {return r.Call(&#34;RPCMethod&#34;, arg, ret)})
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="RPCClient.Close">func (*RPCClient) <a href="/src/target/rpc.go?s=1590:1629#L52">Close</a>
+					<a class="permalink" href="#RPCClient.Close">&#xb6;</a>
+				</h3>
+				<pre>func (f *<a href="#RPCClient">RPCClient</a>) Close() (err <a href="/pkg/builtin/#error">error</a>)</pre>
+				<p>
+Close the RPC connection
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="RPCClient.Dial">func (*RPCClient) <a href="/src/target/rpc.go?s=1374:1412#L43">Dial</a>
+					<a class="permalink" href="#RPCClient.Dial">&#xb6;</a>
+				</h3>
+				<pre>func (f *<a href="#RPCClient">RPCClient</a>) Dial() (err <a href="/pkg/builtin/#error">error</a>)</pre>
+				<p>
+Dial the server: Dial if not connected
+</p>
+
+				
+				
+				
+			
+		
+	
+
+	
+
+
+
+
+
+	
+	
+		<h2 id="pkg-subdirectories">Subdirectories</h2>
+	
+	
+
+
+	<div class="pkg-dir">
+		<table>
+			<tr>
+				<th class="pkg-name">Name</th>
+				<th class="pkg-synopsis">Synopsis</th>
+			</tr>
+
+			
+			<tr>
+				<td colspan="2"><a href="..">..</a></td>
+			</tr>
+			
+
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="algorithm/">algorithm</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="bench/">bench</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="cli/">cli</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="client/">client</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="cmd/">cmd</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="config/">config</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="docs/">docs</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="generate/">generate</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="master/">master</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="policy/">policy</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="storage/">storage</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="structure/">structure</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+				
+					<tr>
+						<td class="pkg-name" style="padding-left: 0px;">
+							<a href="test/">test</a>
+						</td>
+						<td class="pkg-synopsis">
+							
+						</td>
+					</tr>
+				
+			
+		</table>
+	</div>
+
+
+	
+

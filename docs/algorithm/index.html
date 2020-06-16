@@ -1,0 +1,938 @@
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script type='text/javascript'>
+	document.ANALYSIS_DATA = ;
+	document.CALLGRAPH = ;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "./algorithm"</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				
+				
+			</div>
+		</div>
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+			
+			
+				
+				<dd><a href="#HashingCrc32">func HashingCrc32(s string) int64</a></dd>
+			
+				
+				<dd><a href="#HashingFnvTwice">func HashingFnvTwice(s string) int64</a></dd>
+			
+				
+				<dd><a href="#NextPrimeOf">func NextPrimeOf(n int) (nextPrime int)</a></dd>
+			
+				
+				<dd><a href="#NextPrimeOfOld">func NextPrimeOfOld(n int) (nextPrime int)</a></dd>
+			
+				
+				<dd><a href="#PopulateLookupTable">func PopulateLookupTable(MaglevHashingMultipler int, N int, names []string) (entry []int)</a></dd>
+			
+				
+				<dd><a href="#PrimesUntil">func PrimesUntil(n int) (primes []int)</a></dd>
+			
+			
+				
+				<dd><a href="#BasicFloat64Heap">type BasicFloat64Heap</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#BasicFloat64Heap.Top">func (h BasicFloat64Heap) Top() float64</a></dd>
+				
+			
+				
+				<dd><a href="#BasicHeap">type BasicHeap</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#BasicHeap.Len">func (h BasicHeap) Len() int</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#BasicHeap.Pop">func (h *BasicHeap) Pop() (x interface{})</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#BasicHeap.Push">func (h *BasicHeap) Push(x interface{})</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#BasicHeap.Swap">func (h BasicHeap) Swap(i, j int)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#BasicHeap.Top">func (h BasicHeap) Top() interface{}</a></dd>
+				
+			
+				
+				<dd><a href="#BasicIntHeap">type BasicIntHeap</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#BasicIntHeap.Top">func (h BasicIntHeap) Top() int</a></dd>
+				
+			
+				
+				<dd><a href="#DecayCounter">type DecayCounter</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#NewDecayCounter">func NewDecayCounter(halflife float64) *DecayCounter</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#DecayCounter.Get">func (dc *DecayCounter) Get() float64</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#DecayCounter.GetLastDecay">func (dc *DecayCounter) GetLastDecay() time.Time</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#DecayCounter.GetRaw">func (dc *DecayCounter) GetRaw() float64</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#DecayCounter.Hit">func (dc *DecayCounter) Hit() float64</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#DecayCounter.Increment">func (dc *DecayCounter) Increment(v float64) float64</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#DecayCounter.Reset">func (dc *DecayCounter) Reset()</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#DecayCounter.Scale">func (dc *DecayCounter) Scale(v float64) float64</a></dd>
+				
+			
+				
+				<dd><a href="#Heap">type Heap</a></dd>
+				
+				
+			
+				
+				<dd><a href="#MaxFloat64Heap">type MaxFloat64Heap</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#MaxFloat64Heap.Less">func (h MaxFloat64Heap) Less(i, j int) bool</a></dd>
+				
+			
+				
+				<dd><a href="#MaxIntHeap">type MaxIntHeap</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#MaxIntHeap.Less">func (h MaxIntHeap) Less(i, j int) bool</a></dd>
+				
+			
+				
+				<dd><a href="#MinFloat64Heap">type MinFloat64Heap</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#MinFloat64Heap.Less">func (h MinFloat64Heap) Less(i, j int) bool</a></dd>
+				
+			
+				
+				<dd><a href="#MinIntHeap">type MinIntHeap</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#MinIntHeap.Less">func (h MinIntHeap) Less(i, j int) bool</a></dd>
+				
+			
+				
+				<dd><a href="#RunningMedian">type RunningMedian</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#NewRunningMedian">func NewRunningMedian() *RunningMedian</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RunningMedian.Add">func (r *RunningMedian) Add(add float64)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RunningMedian.Delete">func (r *RunningMedian) Delete(del float64)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RunningMedian.Median">func (r *RunningMedian) Median() float64</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RunningMedian.Update">func (r *RunningMedian) Update(del, add float64)</a></dd>
+				
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h3>Package files</h3>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="/src/target/decayCounter.go">decayCounter.go</a>
+			
+				<a href="/src/target/heap.go">heap.go</a>
+			
+				<a href="/src/target/maglevHashing.go">maglevHashing.go</a>
+			
+				<a href="/src/target/primes.go">primes.go</a>
+			
+				<a href="/src/target/runningMedian.go">runningMedian.go</a>
+			
+				<a href="/src/target/someHashing.go">someHashing.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		<div id="pkg-callgraph" class="toggle" style="display: none">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Internal Call Graph section">Internal call graph ▹</h2>
+		</div> <!-- .expanded -->
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Internal Call Graph section">Internal call graph ▾</h2>
+			<p>
+			  In the call graph viewer below, each node
+			  is a function belonging to this package
+			  and its children are the functions it
+			  calls&mdash;perhaps dynamically.
+			</p>
+			<p>
+			  The root nodes are the entry points of the
+			  package: functions that may be called from
+			  outside the package.
+			  There may be non-exported or anonymous
+			  functions among them if they are called
+			  dynamically from another package.
+			</p>
+			<p>
+			  Click a node to visit that function's source code.
+			  From there you can visit its callers by
+			  clicking its declaring <code>func</code>
+			  token.
+			</p>
+			<p>
+			  Functions may be omitted if they were
+			  determined to be unreachable in the
+			  particular programs or tests that were
+			  analyzed.
+			</p>
+			<!-- Zero means show all package entry points. -->
+			<ul style="margin-left: 0.5in" id="callgraph-0" class="treeview"></ul>
+		</div>
+		</div> <!-- #pkg-callgraph -->
+
+		
+		
+		
+			
+			
+			<h2 id="HashingCrc32">func <a href="/src/target/someHashing.go?s=355:388#L13">HashingCrc32</a>
+				<a class="permalink" href="#HashingCrc32">&#xb6;</a>
+			</h2>
+			<pre>func HashingCrc32(s <a href="/pkg/builtin/#string">string</a>) <a href="/pkg/builtin/#int64">int64</a></pre>
+			<p>
+HashingCrc32 uses IEEE crc32
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="HashingFnvTwice">func <a href="/src/target/someHashing.go?s=155:191#L1">HashingFnvTwice</a>
+				<a class="permalink" href="#HashingFnvTwice">&#xb6;</a>
+			</h2>
+			<pre>func HashingFnvTwice(s <a href="/pkg/builtin/#string">string</a>) <a href="/pkg/builtin/#int64">int64</a></pre>
+			<p>
+HashingFnvTwice uses fnv32a and do it 2 times
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="NextPrimeOf">func <a href="/src/target/primes.go?s=933:972#L52">NextPrimeOf</a>
+				<a class="permalink" href="#NextPrimeOf">&#xb6;</a>
+			</h2>
+			<pre>func NextPrimeOf(n <a href="/pkg/builtin/#int">int</a>) (nextPrime <a href="/pkg/builtin/#int">int</a>)</pre>
+			<p>
+NextPrimeOf number n,
+must be small enough to fit,
+undefined overflow otherwise
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="NextPrimeOfOld">func <a href="/src/target/primes.go?s=509:551#L23">NextPrimeOfOld</a>
+				<a class="permalink" href="#NextPrimeOfOld">&#xb6;</a>
+			</h2>
+			<pre>func NextPrimeOfOld(n <a href="/pkg/builtin/#int">int</a>) (nextPrime <a href="/pkg/builtin/#int">int</a>)</pre>
+			<p>
+NextPrimeOfOld number n
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="PopulateLookupTable">func <a href="/src/target/maglevHashing.go?s=75:164#L1">PopulateLookupTable</a>
+				<a class="permalink" href="#PopulateLookupTable">&#xb6;</a>
+			</h2>
+			<pre>func PopulateLookupTable(MaglevHashingMultipler <a href="/pkg/builtin/#int">int</a>, N <a href="/pkg/builtin/#int">int</a>, names []<a href="/pkg/builtin/#string">string</a>) (entry []<a href="/pkg/builtin/#int">int</a>)</pre>
+			<p>
+PopulateLookupTable for the Maglev Hashing algorithm
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="PrimesUntil">func <a href="/src/target/primes.go?s=129:167#L1">PrimesUntil</a>
+				<a class="permalink" href="#PrimesUntil">&#xb6;</a>
+			</h2>
+			<pre>func PrimesUntil(n <a href="/pkg/builtin/#int">int</a>) (primes []<a href="/pkg/builtin/#int">int</a>)</pre>
+			<p>
+PrimesUntil non-negative number n (including n)
+</p>
+
+			
+			
+
+		
+		
+			
+			
+			<h2 id="BasicFloat64Heap">type <a href="/src/target/heap.go?s=1668:1711#L68">BasicFloat64Heap</a>
+				<a class="permalink" href="#BasicFloat64Heap">&#xb6;</a>
+			</h2>
+			<p>
+BasicFloat64Heap based on BasicHeap
+</p>
+
+			<pre>type BasicFloat64Heap struct {
+    <a href="#BasicHeap">BasicHeap</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="BasicFloat64Heap.Top">func (BasicFloat64Heap) <a href="/src/target/heap.go?s=1736:1775#L73">Top</a>
+					<a class="permalink" href="#BasicFloat64Heap.Top">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#BasicFloat64Heap">BasicFloat64Heap</a>) Top() <a href="/pkg/builtin/#float64">float64</a></pre>
+				<p>
+Top of the int data
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="BasicHeap">type <a href="/src/target/heap.go?s=222:267#L2">BasicHeap</a>
+				<a class="permalink" href="#BasicHeap">&#xb6;</a>
+			</h2>
+			<p>
+BasicHeap based on a slice and has no Less() defined
+</p>
+
+			<pre>type BasicHeap struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="BasicHeap.Len">func (BasicHeap) <a href="/src/target/heap.go?s=288:316#L7">Len</a>
+					<a class="permalink" href="#BasicHeap.Len">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#BasicHeap">BasicHeap</a>) Len() <a href="/pkg/builtin/#int">int</a></pre>
+				<p>
+Len of the heap
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="BasicHeap.Pop">func (*BasicHeap) <a href="/src/target/heap.go?s=575:616#L18">Pop</a>
+					<a class="permalink" href="#BasicHeap.Pop">&#xb6;</a>
+				</h3>
+				<pre>func (h *<a href="#BasicHeap">BasicHeap</a>) Pop() (x interface{})</pre>
+				<p>
+Pop from top
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="BasicHeap.Push">func (*BasicHeap) <a href="/src/target/heap.go?s=487:526#L15">Push</a>
+					<a class="permalink" href="#BasicHeap.Push">&#xb6;</a>
+				</h3>
+				<pre>func (h *<a href="#BasicHeap">BasicHeap</a>) Push(x interface{})</pre>
+				<p>
+Push to the end
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="BasicHeap.Swap">func (BasicHeap) <a href="/src/target/heap.go?s=385:418#L12">Swap</a>
+					<a class="permalink" href="#BasicHeap.Swap">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#BasicHeap">BasicHeap</a>) Swap(i, j <a href="/pkg/builtin/#int">int</a>)</pre>
+				<p>
+Swap 2 heap elements
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="BasicHeap.Top">func (BasicHeap) <a href="/src/target/heap.go?s=696:732#L21">Top</a>
+					<a class="permalink" href="#BasicHeap.Top">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#BasicHeap">BasicHeap</a>) Top() interface{}</pre>
+				<p>
+Top of data
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="BasicIntHeap">type <a href="/src/target/heap.go?s=1112:1151#L42">BasicIntHeap</a>
+				<a class="permalink" href="#BasicIntHeap">&#xb6;</a>
+			</h2>
+			<p>
+BasicIntHeap based on BasicHeap
+</p>
+
+			<pre>type BasicIntHeap struct {
+    <a href="#BasicHeap">BasicHeap</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="BasicIntHeap.Top">func (BasicIntHeap) <a href="/src/target/heap.go?s=1176:1207#L47">Top</a>
+					<a class="permalink" href="#BasicIntHeap.Top">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#BasicIntHeap">BasicIntHeap</a>) Top() <a href="/pkg/builtin/#int">int</a></pre>
+				<p>
+Top of the int data
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="DecayCounter">type <a href="/src/target/decayCounter.go?s=835:967#L21">DecayCounter</a>
+				<a class="permalink" href="#DecayCounter">&#xb6;</a>
+			</h2>
+			<p>
+DecayCounter expontionally decays, must Reset() before use
+</p>
+
+			<pre>type DecayCounter struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="NewDecayCounter">func <a href="/src/target/decayCounter.go?s=1017:1069#L28">NewDecayCounter</a>
+					<a class="permalink" href="#NewDecayCounter">&#xb6;</a>
+				</h3>
+				<pre>func NewDecayCounter(halflife <a href="/pkg/builtin/#float64">float64</a>) *<a href="#DecayCounter">DecayCounter</a></pre>
+				<p>
+NewDecayCounter counstucts a NewDecayCounter
+</p>
+
+				
+				
+			
+
+			
+				
+				<h3 id="DecayCounter.Get">func (*DecayCounter) <a href="/src/target/decayCounter.go?s=1708:1745#L62">Get</a>
+					<a class="permalink" href="#DecayCounter.Get">&#xb6;</a>
+				</h3>
+				<pre>func (dc *<a href="#DecayCounter">DecayCounter</a>) Get() <a href="/pkg/builtin/#float64">float64</a></pre>
+				<p>
+Get the counter
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="DecayCounter.GetLastDecay">func (*DecayCounter) <a href="/src/target/decayCounter.go?s=1923:1971#L73">GetLastDecay</a>
+					<a class="permalink" href="#DecayCounter.GetLastDecay">&#xb6;</a>
+				</h3>
+				<pre>func (dc *<a href="#DecayCounter">DecayCounter</a>) GetLastDecay() <a href="/pkg/time/">time</a>.<a href="/pkg/time/#Time">Time</a></pre>
+				<p>
+GetLastDecay the time when last decay occurs
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="DecayCounter.GetRaw">func (*DecayCounter) <a href="/src/target/decayCounter.go?s=1814:1854#L68">GetRaw</a>
+					<a class="permalink" href="#DecayCounter.GetRaw">&#xb6;</a>
+				</h3>
+				<pre>func (dc *<a href="#DecayCounter">DecayCounter</a>) GetRaw() <a href="/pkg/builtin/#float64">float64</a></pre>
+				<p>
+GetRaw value without decaying
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="DecayCounter.Hit">func (*DecayCounter) <a href="/src/target/decayCounter.go?s=2149:2186#L84">Hit</a>
+					<a class="permalink" href="#DecayCounter.Hit">&#xb6;</a>
+				</h3>
+				<pre>func (dc *<a href="#DecayCounter">DecayCounter</a>) Hit() <a href="/pkg/builtin/#float64">float64</a></pre>
+				<p>
+Hit the counter, i.e. increment by 1
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="DecayCounter.Increment">func (*DecayCounter) <a href="/src/target/decayCounter.go?s=2023:2075#L78">Increment</a>
+					<a class="permalink" href="#DecayCounter.Increment">&#xb6;</a>
+				</h3>
+				<pre>func (dc *<a href="#DecayCounter">DecayCounter</a>) Increment(v <a href="/pkg/builtin/#float64">float64</a>) <a href="/pkg/builtin/#float64">float64</a></pre>
+				<p>
+Increment the counter
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="DecayCounter.Reset">func (*DecayCounter) <a href="/src/target/decayCounter.go?s=2358:2389#L95">Reset</a>
+					<a class="permalink" href="#DecayCounter.Reset">&#xb6;</a>
+				</h3>
+				<pre>func (dc *<a href="#DecayCounter">DecayCounter</a>) Reset()</pre>
+				<p>
+Reset the counter
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="DecayCounter.Scale">func (*DecayCounter) <a href="/src/target/decayCounter.go?s=2255:2303#L89">Scale</a>
+					<a class="permalink" href="#DecayCounter.Scale">&#xb6;</a>
+				</h3>
+				<pre>func (dc *<a href="#DecayCounter">DecayCounter</a>) Scale(v <a href="/pkg/builtin/#float64">float64</a>) <a href="/pkg/builtin/#float64">float64</a></pre>
+				<p>
+Scale the counter, does not decay
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="Heap">type <a href="/src/target/heap.go?s=106:164#L1">Heap</a>
+				<a class="permalink" href="#Heap">&#xb6;</a>
+			</h2>
+			<p>
+Heap interface with Top (since Golang&#39;s heap has no Top())
+</p>
+
+			<pre>type Heap interface {
+    <a href="/pkg/container/heap/">heap</a>.<a href="/pkg/container/heap/#Interface">Interface</a>
+    Top() interface{}
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="MaxFloat64Heap">type <a href="/src/target/heap.go?s=2065:2113#L84">MaxFloat64Heap</a>
+				<a class="permalink" href="#MaxFloat64Heap">&#xb6;</a>
+			</h2>
+			<p>
+MaxFloat64Heap based on BasicIntHeap
+</p>
+
+			<pre>type MaxFloat64Heap struct {
+    <a href="#BasicFloat64Heap">BasicFloat64Heap</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="MaxFloat64Heap.Less">func (MaxFloat64Heap) <a href="/src/target/heap.go?s=2136:2179#L89">Less</a>
+					<a class="permalink" href="#MaxFloat64Heap.Less">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#MaxFloat64Heap">MaxFloat64Heap</a>) Less(i, j <a href="/pkg/builtin/#int">int</a>) <a href="/pkg/builtin/#bool">bool</a></pre>
+				<p>
+Less for max heap
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="MaxIntHeap">type <a href="/src/target/heap.go?s=1465:1505#L58">MaxIntHeap</a>
+				<a class="permalink" href="#MaxIntHeap">&#xb6;</a>
+			</h2>
+			<p>
+MaxIntHeap based on BasicIntHeap
+</p>
+
+			<pre>type MaxIntHeap struct {
+    <a href="#BasicIntHeap">BasicIntHeap</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="MaxIntHeap.Less">func (MaxIntHeap) <a href="/src/target/heap.go?s=1528:1567#L63">Less</a>
+					<a class="permalink" href="#MaxIntHeap.Less">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#MaxIntHeap">MaxIntHeap</a>) Less(i, j <a href="/pkg/builtin/#int">int</a>) <a href="/pkg/builtin/#bool">bool</a></pre>
+				<p>
+Less for max heap
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="MinFloat64Heap">type <a href="/src/target/heap.go?s=1856:1904#L76">MinFloat64Heap</a>
+				<a class="permalink" href="#MinFloat64Heap">&#xb6;</a>
+			</h2>
+			<p>
+MinFloat64Heap based on BasicIntHeap
+</p>
+
+			<pre>type MinFloat64Heap struct {
+    <a href="#BasicFloat64Heap">BasicFloat64Heap</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="MinFloat64Heap.Less">func (MinFloat64Heap) <a href="/src/target/heap.go?s=1927:1970#L81">Less</a>
+					<a class="permalink" href="#MinFloat64Heap.Less">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#MinFloat64Heap">MinFloat64Heap</a>) Less(i, j <a href="/pkg/builtin/#int">int</a>) <a href="/pkg/builtin/#bool">bool</a></pre>
+				<p>
+Less for min heap
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="MinIntHeap">type <a href="/src/target/heap.go?s=1280:1320#L50">MinIntHeap</a>
+				<a class="permalink" href="#MinIntHeap">&#xb6;</a>
+			</h2>
+			<p>
+MinIntHeap based on BasicIntHeap
+</p>
+
+			<pre>type MinIntHeap struct {
+    <a href="#BasicIntHeap">BasicIntHeap</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="MinIntHeap.Less">func (MinIntHeap) <a href="/src/target/heap.go?s=1343:1382#L55">Less</a>
+					<a class="permalink" href="#MinIntHeap.Less">&#xb6;</a>
+				</h3>
+				<pre>func (h <a href="#MinIntHeap">MinIntHeap</a>) Less(i, j <a href="/pkg/builtin/#int">int</a>) <a href="/pkg/builtin/#bool">bool</a></pre>
+				<p>
+Less for min heap
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="RunningMedian">type <a href="/src/target/runningMedian.go?s=586:801#L14">RunningMedian</a>
+				<a class="permalink" href="#RunningMedian">&#xb6;</a>
+			</h2>
+			<p>
+RunningMedian provides median for a data stream:
+</p>
+<p>
+Invariant:
+</p>
+<p>
+* {x \in lower | x &lt;= median}
+</p>
+<p>
+* {x \in higher and x != higher.Top() | x &gt; median }
+</p>
+<p>
+when N is odd, median is .5*(higher.Top() + lower.Top())
+</p>
+
+			<pre>type RunningMedian struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="NewRunningMedian">func <a href="/src/target/runningMedian.go?s=878:916#L27">NewRunningMedian</a>
+					<a class="permalink" href="#NewRunningMedian">&#xb6;</a>
+				</h3>
+				<pre>func NewRunningMedian() *<a href="#RunningMedian">RunningMedian</a></pre>
+				<p>
+NewRunningMedian constructs a RunningMedian for the given less function
+</p>
+
+				
+				
+			
+
+			
+				
+				<h3 id="RunningMedian.Add">func (*RunningMedian) <a href="/src/target/runningMedian.go?s=1875:1915#L69">Add</a>
+					<a class="permalink" href="#RunningMedian.Add">&#xb6;</a>
+				</h3>
+				<pre>func (r *<a href="#RunningMedian">RunningMedian</a>) Add(add <a href="/pkg/builtin/#float64">float64</a>)</pre>
+				<p>
+Add a new data
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="RunningMedian.Delete">func (*RunningMedian) <a href="/src/target/runningMedian.go?s=2924:2967#L116">Delete</a>
+					<a class="permalink" href="#RunningMedian.Delete">&#xb6;</a>
+				</h3>
+				<pre>func (r *<a href="#RunningMedian">RunningMedian</a>) Delete(del <a href="/pkg/builtin/#float64">float64</a>)</pre>
+				<p>
+Delete an element, not concurrency safe.
+If the element to delete was not Added,
+the behavior is undefined (may panic eventually)
+Not tested!
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="RunningMedian.Median">func (*RunningMedian) <a href="/src/target/runningMedian.go?s=1406:1446#L53">Median</a>
+					<a class="permalink" href="#RunningMedian.Median">&#xb6;</a>
+				</h3>
+				<pre>func (r *<a href="#RunningMedian">RunningMedian</a>) Median() <a href="/pkg/builtin/#float64">float64</a></pre>
+				<p>
+Median of seen data
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="RunningMedian.Update">func (*RunningMedian) <a href="/src/target/runningMedian.go?s=3714:3762#L162">Update</a>
+					<a class="permalink" href="#RunningMedian.Update">&#xb6;</a>
+				</h3>
+				<pre>func (r *<a href="#RunningMedian">RunningMedian</a>) Update(del, add <a href="/pkg/builtin/#float64">float64</a>)</pre>
+				<p>
+Update the median by deleting del and adding add.
+If the element to delete was not Added,
+the behavior is undefined (may panic eventually)
+</p>
+
+				
+				
+				
+			
+		
+	
+
+	
+
+
+
+
+

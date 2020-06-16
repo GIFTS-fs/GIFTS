@@ -1,0 +1,231 @@
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script type='text/javascript'>
+	document.ANALYSIS_DATA = ;
+	document.CALLGRAPH = ;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "./config"</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				
+				
+			</div>
+		</div>
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+			
+			
+				
+				<dd><a href="#GIFTSDefaultConfigPath">func GIFTSDefaultConfigPath() string</a></dd>
+			
+				
+				<dd><a href="#Load">func Load(path string) error</a></dd>
+			
+			
+				
+				<dd><a href="#Config">type Config</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Get">func Get() *Config</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#LoadGet">func LoadGet(path string) (*Config, error)</a></dd>
+				
+				
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h3>Package files</h3>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="/src/target/config.go">config.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		<div id="pkg-callgraph" class="toggle" style="display: none">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Internal Call Graph section">Internal call graph ▹</h2>
+		</div> <!-- .expanded -->
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Internal Call Graph section">Internal call graph ▾</h2>
+			<p>
+			  In the call graph viewer below, each node
+			  is a function belonging to this package
+			  and its children are the functions it
+			  calls&mdash;perhaps dynamically.
+			</p>
+			<p>
+			  The root nodes are the entry points of the
+			  package: functions that may be called from
+			  outside the package.
+			  There may be non-exported or anonymous
+			  functions among them if they are called
+			  dynamically from another package.
+			</p>
+			<p>
+			  Click a node to visit that function's source code.
+			  From there you can visit its callers by
+			  clicking its declaring <code>func</code>
+			  token.
+			</p>
+			<p>
+			  Functions may be omitted if they were
+			  determined to be unreachable in the
+			  particular programs or tests that were
+			  analyzed.
+			</p>
+			<!-- Zero means show all package entry points. -->
+			<ul style="margin-left: 0.5in" id="callgraph-0" class="treeview"></ul>
+		</div>
+		</div> <!-- #pkg-callgraph -->
+
+		
+		
+		
+			
+			
+			<h2 id="GIFTSDefaultConfigPath">func <a href="/src/target/config.go?s=175:211#L5">GIFTSDefaultConfigPath</a>
+				<a class="permalink" href="#GIFTSDefaultConfigPath">&#xb6;</a>
+			</h2>
+			<pre>func GIFTSDefaultConfigPath() <a href="/pkg/builtin/#string">string</a></pre>
+			<p>
+GIFTSDefaultConfigPath in current directory
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="Load">func <a href="/src/target/config.go?s=797:825#L33">Load</a>
+				<a class="permalink" href="#Load">&#xb6;</a>
+			</h2>
+			<pre>func Load(path <a href="/pkg/builtin/#string">string</a>) <a href="/pkg/builtin/#error">error</a></pre>
+			<p>
+Load the system configuration from the config file
+</p>
+
+			
+			
+
+		
+		
+			
+			
+			<h2 id="Config">type <a href="/src/target/config.go?s=359:741#L15">Config</a>
+				<a class="permalink" href="#Config">&#xb6;</a>
+			</h2>
+			<p>
+Config holds all configuration data for the system
+</p>
+
+			<pre>type Config struct {
+<span id="Config.GiftsBlockSize"></span>    GiftsBlockSize <a href="/pkg/builtin/#int">int</a>
+
+<span id="Config.Master"></span>    Master   <a href="/pkg/builtin/#string">string</a>
+<span id="Config.Storages"></span>    Storages []<a href="/pkg/builtin/#string">string</a>
+
+<span id="Config.DynamicReplicationEnabled"></span>    DynamicReplicationEnabled   <a href="/pkg/builtin/#bool">bool</a>
+<span id="Config.MasterRebalanceIntervalSec"></span>    MasterRebalanceIntervalSec  <a href="/pkg/time/">time</a>.<a href="/pkg/time/#Duration">Duration</a>
+<span id="Config.TrafficDecayCounterHalfLife"></span>    TrafficDecayCounterHalfLife <a href="/pkg/builtin/#float64">float64</a>
+
+<span id="Config.MaglevHashingMultipler"></span>    MaglevHashingMultipler <a href="/pkg/builtin/#int">int</a>
+
+<span id="Config.BlockPlacementPolicy"></span>    BlockPlacementPolicy           <a href="/pkg/github.com/GIFTS-fs/GIFTS/policy/">policy</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/policy/#BlockPlacementPolicy">BlockPlacementPolicy</a>
+<span id="Config.ReplicaPlacementPolicy"></span>    ReplicaPlacementPolicy         <a href="/pkg/github.com/GIFTS-fs/GIFTS/policy/">policy</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/policy/#ReplicaPlacementPolicy">ReplicaPlacementPolicy</a>
+<span id="Config.ReplicaPlacementPermuTableSize"></span>    ReplicaPlacementPermuTableSize <a href="/pkg/builtin/#int">int</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="Get">func <a href="/src/target/config.go?s=1447:1465#L60">Get</a>
+					<a class="permalink" href="#Get">&#xb6;</a>
+				</h3>
+				<pre>func Get() *<a href="#Config">Config</a></pre>
+				<p>
+Get a reference to the system configuration
+</p>
+
+				
+				
+			
+				
+				<h3 id="LoadGet">func <a href="/src/target/config.go?s=1621:1663#L68">LoadGet</a>
+					<a class="permalink" href="#LoadGet">&#xb6;</a>
+				</h3>
+				<pre>func LoadGet(path <a href="/pkg/builtin/#string">string</a>) (*<a href="#Config">Config</a>, <a href="/pkg/builtin/#error">error</a>)</pre>
+				<p>
+LoadGet loads if not already loaded, it&#39;s concurrency safe and ensures singleton
+</p>
+
+				
+				
+			
+
+			
+		
+	
+
+	
+
+
+
+
+

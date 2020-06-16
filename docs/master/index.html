@@ -1,0 +1,372 @@
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script type='text/javascript'>
+	document.ANALYSIS_DATA = ;
+	document.CALLGRAPH = ;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "./master"</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				
+				
+			</div>
+		</div>
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+				<dd><a href="#pkg-constants">Constants</a></dd>
+			
+			
+			
+				
+				<dd><a href="#ServeRPC">func ServeRPC(m *Master, addr string) (err error)</a></dd>
+			
+				
+				<dd><a href="#ServeRPCBlock">func ServeRPCBlock(m *Master, addr string, readyChan chan bool) (err error)</a></dd>
+			
+			
+				
+				<dd><a href="#Conn">type Conn</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#NewConn">func NewConn(addr string) *Conn</a></dd>
+				
+				
+			
+				
+				<dd><a href="#CreateFunc">type CreateFunc</a></dd>
+				
+				
+			
+				
+				<dd><a href="#LookupFunc">type LookupFunc</a></dd>
+				
+				
+			
+				
+				<dd><a href="#Master">type Master</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#NewMaster">func NewMaster(storageAddr []string, config *config.Config) *Master</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Master.Create">func (m *Master) Create(req *structure.FileCreateReq, assignments *[]structure.BlockAssign) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Master.Lookup">func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error</a></dd>
+				
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h3>Package files</h3>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="/src/target/assign.go">assign.go</a>
+			
+				<a href="/src/target/balance.go">balance.go</a>
+			
+				<a href="/src/target/common.go">common.go</a>
+			
+				<a href="/src/target/conn.go">conn.go</a>
+			
+				<a href="/src/target/file.go">file.go</a>
+			
+				<a href="/src/target/interface.go">interface.go</a>
+			
+				<a href="/src/target/master.go">master.go</a>
+			
+				<a href="/src/target/store.go">store.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		<div id="pkg-callgraph" class="toggle" style="display: none">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Internal Call Graph section">Internal call graph ▹</h2>
+		</div> <!-- .expanded -->
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Internal Call Graph section">Internal call graph ▾</h2>
+			<p>
+			  In the call graph viewer below, each node
+			  is a function belonging to this package
+			  and its children are the functions it
+			  calls&mdash;perhaps dynamically.
+			</p>
+			<p>
+			  The root nodes are the entry points of the
+			  package: functions that may be called from
+			  outside the package.
+			  There may be non-exported or anonymous
+			  functions among them if they are called
+			  dynamically from another package.
+			</p>
+			<p>
+			  Click a node to visit that function's source code.
+			  From there you can visit its callers by
+			  clicking its declaring <code>func</code>
+			  token.
+			</p>
+			<p>
+			  Functions may be omitted if they were
+			  determined to be unreachable in the
+			  particular programs or tests that were
+			  analyzed.
+			</p>
+			<!-- Zero means show all package entry points. -->
+			<ul style="margin-left: 0.5in" id="callgraph-0" class="treeview"></ul>
+		</div>
+		</div> <!-- #pkg-callgraph -->
+
+		
+			<h2 id="pkg-constants">Constants</h2>
+			
+				
+				<pre>const (
+    <span class="comment">// RPCPathMaster the path that NameNode listens to</span>
+    <span id="RPCPathMaster">RPCPathMaster</span> = &#34;/_gifts_master_&#34;
+    <span class="comment">// RPCMethodCreate the RPC method name</span>
+    <span id="RPCMethodCreate">RPCMethodCreate</span> = &#34;Master.Create&#34;
+    <span class="comment">// RPCMethodLookup the RPC method name</span>
+    <span id="RPCMethodLookup">RPCMethodLookup</span> = &#34;Master.Lookup&#34;
+)</pre>
+			
+		
+		
+		
+			
+			
+			<h2 id="ServeRPC">func <a href="/src/target/master.go?s=3947:3996#L153">ServeRPC</a>
+				<a class="permalink" href="#ServeRPC">&#xb6;</a>
+			</h2>
+			<pre>func ServeRPC(m *<a href="#Master">Master</a>, addr <a href="/pkg/builtin/#string">string</a>) (err <a href="/pkg/builtin/#error">error</a>)</pre>
+			<p>
+ServeRPC makes the Master accessible via RPC
+at the specified IP address and port.
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="ServeRPCBlock">func <a href="/src/target/master.go?s=3150:3225#L114">ServeRPCBlock</a>
+				<a class="permalink" href="#ServeRPCBlock">&#xb6;</a>
+			</h2>
+			<pre>func ServeRPCBlock(m *<a href="#Master">Master</a>, addr <a href="/pkg/builtin/#string">string</a>, readyChan chan <a href="/pkg/builtin/#bool">bool</a>) (err <a href="/pkg/builtin/#error">error</a>)</pre>
+			<p>
+ServeRPCBlock makes the Master accessible via RPC at the specified IP
+address and port.  Blocks and does not return.
+</p>
+
+			
+			
+
+		
+		
+			
+			
+			<h2 id="Conn">type <a href="/src/target/conn.go?s=252:325#L2">Conn</a>
+				<a class="permalink" href="#Conn">&#xb6;</a>
+			</h2>
+			<p>
+Conn is the connection to one Master.
+It is cache safe (i.e. can reuse as long as the server is alive, no matter failed in between)
+</p>
+
+			<pre>type Conn struct {
+<span id="Conn.Create"></span>    Create <a href="#CreateFunc">CreateFunc</a>
+<span id="Conn.Lookup"></span>    Lookup <a href="#LookupFunc">LookupFunc</a>
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="NewConn">func <a href="/src/target/conn.go?s=366:397#L9">NewConn</a>
+					<a class="permalink" href="#NewConn">&#xb6;</a>
+				</h3>
+				<pre>func NewConn(addr <a href="/pkg/builtin/#string">string</a>) *<a href="#Conn">Conn</a></pre>
+				<p>
+NewConn constructor for Client.Conn
+</p>
+
+				
+				
+			
+
+			
+		
+			
+			
+			<h2 id="CreateFunc">type <a href="/src/target/interface.go?s=370:462#L5">CreateFunc</a>
+				<a class="permalink" href="#CreateFunc">&#xb6;</a>
+			</h2>
+			<p>
+CreateFunc is the function signature for Master.Create()
+</p>
+
+			<pre>type CreateFunc func(fname <a href="/pkg/builtin/#string">string</a>, fsize <a href="/pkg/builtin/#int">int</a>, rfactor <a href="/pkg/builtin/#uint">uint</a>) ([]<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#BlockAssign">BlockAssign</a>, <a href="/pkg/builtin/#error">error</a>)</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="LookupFunc">type <a href="/src/target/interface.go?s=524:589#L8">LookupFunc</a>
+				<a class="permalink" href="#LookupFunc">&#xb6;</a>
+			</h2>
+			<p>
+LookupFunc is the function signature for Master.Lookup()
+</p>
+
+			<pre>type LookupFunc func(fname <a href="/pkg/builtin/#string">string</a>) (*<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#FileBlocks">FileBlocks</a>, <a href="/pkg/builtin/#error">error</a>)</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="Master">type <a href="/src/target/master.go?s=313:1390#L10">Master</a>
+				<a class="permalink" href="#Master">&#xb6;</a>
+			</h2>
+			<p>
+Master is the master of GIFTS
+</p>
+
+			<pre>type Master struct {
+<span id="Master.Logger"></span>    Logger *<a href="/pkg/github.com/GIFTS-fs/GIFTS/">gifts</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/#Logger">Logger</a>
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="NewMaster">func <a href="/src/target/master.go?s=1486:1553#L55">NewMaster</a>
+					<a class="permalink" href="#NewMaster">&#xb6;</a>
+				</h3>
+				<pre>func NewMaster(storageAddr []<a href="/pkg/builtin/#string">string</a>, config *<a href="/pkg/github.com/GIFTS-fs/GIFTS/config/">config</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/config/#Config">Config</a>) *<a href="#Master">Master</a></pre>
+				<p>
+NewMaster creates a new GIFTS Master.
+It requires a list of addresses of Storage nodes.
+</p>
+
+				
+				
+			
+
+			
+				
+				<h3 id="Master.Create">func (*Master) <a href="/src/target/master.go?s=4252:4349#L165">Create</a>
+					<a class="permalink" href="#Master.Create">&#xb6;</a>
+				</h3>
+				<pre>func (m *<a href="#Master">Master</a>) Create(req *<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#FileCreateReq">FileCreateReq</a>, assignments *[]<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#BlockAssign">BlockAssign</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Create a file: assign replicas for the clients to write
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="Master.Lookup">func (*Master) <a href="/src/target/master.go?s=5193:5264#L196">Lookup</a>
+					<a class="permalink" href="#Master.Lookup">&#xb6;</a>
+				</h3>
+				<pre>func (m *<a href="#Master">Master</a>) Lookup(fName <a href="/pkg/builtin/#string">string</a>, ret **<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#FileBlocks">FileBlocks</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Lookup a file: find mapping for a file
+</p>
+
+				
+				
+				
+			
+		
+	
+
+	
+
+
+
+
+

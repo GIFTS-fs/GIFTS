@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docs="docs-build"
+docs="docs"
 
 echo "Builidng html documents to ${docs}"
 
