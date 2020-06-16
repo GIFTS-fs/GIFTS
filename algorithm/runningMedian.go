@@ -1,6 +1,8 @@
 package algorithm
 
-import "container/heap"
+import (
+	"container/heap"
+)
 
 // TODO: make the whole class concurrency safe without locks
 // namely, remove strict requirements on size, if 0 then quit gracefully.
@@ -168,6 +170,16 @@ func (r *RunningMedian) Delete(del float64) {
 // If the element to delete was not Added,
 // the behavior is undefined (may panic eventually)
 func (r *RunningMedian) Update(del, add float64) {
+	// defer func() {
+	// 	if rec := recover(); rec != nil {
+	// 		log.Printf("Panic: %v\n", rec)
+	// 		log.Printf("  del: %v add: %v \n", del, add)
+	// 		log.Printf("  lower: %v higher: %v delLower:%v, delHigher:%v \n", r.lower.data, r.higher.data, r.delLower, r.delHigher)
+	// 		log.Printf("  del: %v\n", r.del)
+	// 		panic(rec)
+	// 	}
+	// }()
+
 	if del == add {
 		return
 	}

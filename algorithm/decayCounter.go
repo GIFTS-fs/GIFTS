@@ -1,8 +1,26 @@
 package algorithm
 
+/*
+ * Decay Counter
+ *
+ * Copyright (C) 2020 jil712
+ *
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * See COPYING-LGPL2.1
+ *
+ */
+
 // Heavily insipred by
 // https://github.com/ceph/ceph/blob/25ac1528419371686740412616145703810a561f/src/common/DecayCounter.h
-// TODO: add GNU license
 
 import (
 	"math"

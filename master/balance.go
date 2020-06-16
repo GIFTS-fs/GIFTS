@@ -8,7 +8,8 @@ type enlistment struct {
 	fileBlock *fileBlock
 	src       *storeMeta
 	dst       *storeMeta
-	// update func() // the update to be done on the data structure if success, make it atomatic TODO
+	// TODO: the update to be done on the data structure if success, make it atomatic
+	// update func()
 }
 
 // replicateEnlistment copies blockID from src to dst
@@ -25,8 +26,8 @@ func (m *Master) dereplicateEnlistment(enlistment *enlistment) error {
 }
 
 // detectUnbalance based on the policy,
-// return a slice of fMeta that are considered unbalanced
-// and can be balanced
+// return 2 slices of fMeta that
+// are considered unbalanced and can be balanced
 func (m *Master) detectUnbalance() (toUp, toDown []*fileMeta) {
 	m.trafficLock.Lock()
 	// currentMedian must be read-only after the critical section
@@ -38,11 +39,10 @@ func (m *Master) detectUnbalance() (toUp, toDown []*fileMeta) {
 	m.fMap.Range(func(key interface{}, value interface{}) bool {
 		fm := value.(*fileMeta)
 
-		fm.trafficLock.Lock()
-		prev, tempature := fm.trafficCounter.GetRaw(), fm.trafficCounter.Get()
-		fm.trafficLock.Unlock()
-
+		// TODO: figure out better ways to put the critical sections
+		// and data read (currentMedian is the median before the for loop currently)
 		m.trafficLock.Lock()
+		prev, tempature := fm.trafficCounter.GetRaw(), fm.trafficCounter.Get()
 		m.trafficMedian.Update(prev, tempature)
 		m.trafficLock.Unlock()
 
@@ -50,20 +50,23 @@ func (m *Master) detectUnbalance() (toUp, toDown []*fileMeta) {
 
 		// Assume only balance() will change nReplica and nStorage
 		// no locks around those 2 fields
+		// since only one balance() thread running
 
 		// Assume rFactor is not needed for toUP (no new storage can be dynamiclly added in first phase)
 
-		m.Logger.Printf("Checking %q: temperature: %v, nReplica: %v, rFactor: %v\n", fm.fName, tempature, fm.nReplica, fm.rFactor)
+		// m.Logger.Printf("DEBUG Checking %q: temperature: %v, nReplica: %v, rFactor: %v\n", fm.fName, tempature, fm.nReplica, fm.rFactor)
 
 		// Unbalance detection policy 1: reference count / number of replications > median reference count / number of storage
-		if fm.nReplica < m.nStorage && tempature/float64(fm.nReplica) > currentMedian/float64(m.nStorage) {
-			m.Logger.Printf("balance Policy 1 caught toUp: %v", fm)
+		threshold := currentMedian / float64(m.nStorage)
+
+		if fm.nReplica < m.nStorage && tempature/float64(fm.nReplica) > threshold {
+			// m.Logger.Printf("DEBUG balance Policy 1 caught toUp: %v", fm)
 			toUp = append(toUp, fm)
 		}
 
 		// WARN: bad, unnecessary type casting
-		if fm.nReplica > int(fm.rFactor) && tempature/float64(fm.nReplica) < currentMedian/float64(m.nStorage) {
-			m.Logger.Printf("balance Policy 1 caught toDown: %v", fm)
+		if fm.nReplica > int(fm.rFactor) && tempature/float64(fm.nReplica) < threshold {
+			// m.Logger.Printf("DEBUG balance Policy 1 caught toDown: %v", fm)
 			toDown = append(toDown, fm)
 		}
 
@@ -77,30 +80,24 @@ func (m *Master) detectUnbalance() (toUp, toDown []*fileMeta) {
 }
 
 // enlistNewReplicas for file fm, returns a list of enlistment.
-// this list may contain duplicated storage, storage that already
-// stores the file, storage that already stores the block etc.
 func (m *Master) enlistNewReplicas(fm *fileMeta) (enlistments []*enlistment) {
-	// WARN: bad, unnecessary type casting
 	if fm.nReplica == m.nStorage {
 		return nil
 	}
 
 	enlistments = make([]*enlistment, fm.nBlocks)
 
-	// Replica Block Placement Policy 1: Clock
 	for i, block := range fm.blocks {
 		enlistment := &enlistment{blockID: block.BlockID, fileBlock: block}
 		enlistment.src, _ = m.pickReplica(block)
-		enlistment.dst = m.clockNextReplicaBlock(block)
+		enlistment.dst = m.nextReplicaOf(block)
 		enlistments[i] = enlistment
 	}
-
-	// Replica Block Placement Policy 2: lowest load
 
 	return
 }
 
-// dischargeReplicas
+// dischargeReplicas for file fm, return a slice of enlistments for each block
 func (m *Master) dischargeReplicas(fm *fileMeta) (enlistments []*enlistment) {
 	if fm.nReplica <= int(fm.rFactor) {
 		return nil
@@ -108,15 +105,11 @@ func (m *Master) dischargeReplicas(fm *fileMeta) (enlistments []*enlistment) {
 
 	enlistments = make([]*enlistment, fm.nBlocks)
 
-	// Replica Block Placement Policy 1: Clock
-	// Must be used together with Clock for enlistment
 	for i, block := range fm.blocks {
 		enlistment := &enlistment{blockID: block.BlockID, fileBlock: block}
-		enlistment.dst = m.clockRemoveReplicaBlock(block)
+		enlistment.dst = m.removeReplicaOf(block)
 		enlistments[i] = enlistment
 	}
-
-	// Replica Block Placement Policy 2: Highest load
 
 	return
 }

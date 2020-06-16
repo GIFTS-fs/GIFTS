@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/GIFTS-fs/GIFTS/policy"
 )
 
 // GIFTSDefaultConfigPath in current directory
@@ -21,12 +23,20 @@ var (
 
 // Config holds all configuration data for the system
 type Config struct {
+	GiftsBlockSize int
+
+	Master   string
+	Storages []string
+
+	DynamicReplicationEnabled   bool
 	MasterRebalanceIntervalSec  time.Duration
 	TrafficDecayCounterHalfLife float64
-	GiftsBlockSize              int
-	Storages                    []string
-	Master                      string
-	DynamicReplicationEnabled   bool
+
+	MaglevHashingMultipler int
+
+	BlockPlacementPolicy           policy.BlockPlacementPolicy
+	ReplicaPlacementPolicy         policy.ReplicaPlacementPolicy
+	ReplicaPlacementPermuTableSize int
 }
 
 // Load the system configuration from the config file
@@ -38,6 +48,16 @@ func Load(path string) error {
 
 	err := json.NewDecoder(file).Decode(&newConfig)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Load(%q): %v\n", path, err)
+		return err
+	}
+
+	if newConfig.Master == "" ||
+		newConfig.MasterRebalanceIntervalSec == 0 ||
+		newConfig.MaglevHashingMultipler == 0 ||
+		newConfig.ReplicaPlacementPermuTableSize == 0 {
+		// TODO: clarify which one is invalid
+		err := fmt.Errorf("Config: Invalid entry")
 		fmt.Fprintf(os.Stderr, "Load(%q): %v\n", path, err)
 		return err
 	}

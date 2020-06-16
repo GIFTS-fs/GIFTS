@@ -12,6 +12,7 @@ import (
 	gifts "github.com/GIFTS-fs/GIFTS"
 	"github.com/GIFTS-fs/GIFTS/algorithm"
 	"github.com/GIFTS-fs/GIFTS/config"
+	"github.com/GIFTS-fs/GIFTS/policy"
 	"github.com/GIFTS-fs/GIFTS/structure"
 )
 
@@ -30,27 +31,44 @@ type Master struct {
 	// storage addr -> *storeMeta
 	sMap sync.Map
 
-	// New block placement policy 1: Clock
-	createClockHand int
+	// Only one balancing thread at one time
+	isBalancing     bool
+	isBalancingLock sync.Mutex
 
-	isBalancing      bool
-	isBalancingLock  sync.Mutex
-	balanceClockHand int
-
+	// traffic statistics
 	trafficMedian *algorithm.RunningMedian
 	trafficLock   sync.Mutex
+
+	/* Policy fields */
+	createHandLock      sync.Mutex
+	touchCreateHandUnit func(int) int
+
+	nextReplicaOfUnit   func(*fileBlock) *storeMeta
+	removeReplicaOfUnit func(*fileBlock) *storeMeta
+
+	// Note that policy 1,2 can share the same createHand
+
+	// Block placement policy 1: Round-robin
+	createHandRR int
+
+	// Block placement policy 2: consist hashing + random permutation
+	placementEntry    []int
+	placementEntryLen int
+	createHandPermu   int // placementEntry[createHandPermu]: next backend to place a block
+
+	// Replica placement policy 2: consist hashing + random permutation
+	replicaPermu [][]int
 }
 
 // NewMaster creates a new GIFTS Master.
 // It requires a list of addresses of Storage nodes.
 func NewMaster(storageAddr []string, config *config.Config) *Master {
 	m := Master{
-		Logger:          gifts.NewLogger("Master", "local", false), // PRODUCTION: banish this
-		nStorage:        len(storageAddr),
-		createClockHand: 0,
-		storages:        make([]*storeMeta, len(storageAddr)),
-		trafficMedian:   algorithm.NewRunningMedian(),
-		config:          config,
+		Logger:        gifts.NewLogger("Master", "local", false), // PRODUCTION: banish this
+		nStorage:      len(storageAddr),
+		storages:      make([]*storeMeta, len(storageAddr)),
+		trafficMedian: algorithm.NewRunningMedian(),
+		config:        config,
 	}
 
 	for i, addr := range storageAddr {
@@ -59,7 +77,26 @@ func NewMaster(storageAddr []string, config *config.Config) *Master {
 		m.storages[i] = s
 	}
 
+	// For selection policy: rand
 	rand.Seed(time.Now().UnixNano())
+
+	switch config.BlockPlacementPolicy {
+	case policy.BlockPlacementPolicyPermutation:
+		m.populateLookupTable(storageAddr)
+		m.touchCreateHandUnit = m.touchCreateHandUnitPermu
+	default:
+		m.touchCreateHandUnit = m.touchCreateHandUnitRR
+	}
+
+	switch config.ReplicaPlacementPolicy {
+	case policy.ReplicaPlacementPolicyPermutation:
+		m.buildReplicaPermuTable()
+		m.nextReplicaOfUnit = m.nextReplicaOfUnitPermu
+		m.removeReplicaOfUnit = m.removeReplicaOfUnitPermu
+	default:
+		m.nextReplicaOfUnit = m.nextReplicaOfUnitRR
+		m.removeReplicaOfUnit = m.removeReplicaOfUnitRR
+	}
 
 	return &m
 }
@@ -187,15 +224,13 @@ func (m *Master) Lookup(fName string, ret **structure.FileBlocks) error {
 	// don't let this block the critical path
 	go func() {
 		// TODO: shall remove the lock since we don't care the exact data?
-		fm.trafficLock.Lock()
-		prev, curr := fm.trafficCounter.GetRaw(), fm.trafficCounter.Hit()
-		fm.trafficLock.Unlock()
-
-		// m.Logger.Printf("DEBUG: traffic for %q: prev: %v curr: %v\n", fm.fName, prev, curr)
 
 		m.trafficLock.Lock()
+		prev, curr := fm.trafficCounter.GetRaw(), fm.trafficCounter.Hit()
 		m.trafficMedian.Update(prev, curr)
 		m.trafficLock.Unlock()
+
+		// m.Logger.Printf("DEBUG: traffic for %q: prev: %v curr: %v\n", fm.fName, prev, curr)
 	}()
 
 	m.Logger.Printf("Master.Lookup(%q) => %v", fName, *ret)
