@@ -1,0 +1,285 @@
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script type='text/javascript'>
+	document.ANALYSIS_DATA = ;
+	document.CALLGRAPH = ;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "./structure"</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				
+				
+			</div>
+		</div>
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+			
+			
+			
+				
+				<dd><a href="#BlockAssign">type BlockAssign</a></dd>
+				
+				
+			
+				
+				<dd><a href="#BlockKV">type BlockKV</a></dd>
+				
+				
+			
+				
+				<dd><a href="#FileBlocks">type FileBlocks</a></dd>
+				
+				
+			
+				
+				<dd><a href="#FileCreateReq">type FileCreateReq</a></dd>
+				
+				
+			
+				
+				<dd><a href="#ReplicateKV">type ReplicateKV</a></dd>
+				
+				
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h3>Package files</h3>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="/src/target/master.go">master.go</a>
+			
+				<a href="/src/target/storage.go">storage.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		<div id="pkg-callgraph" class="toggle" style="display: none">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Internal Call Graph section">Internal call graph ▹</h2>
+		</div> <!-- .expanded -->
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Internal Call Graph section">Internal call graph ▾</h2>
+			<p>
+			  In the call graph viewer below, each node
+			  is a function belonging to this package
+			  and its children are the functions it
+			  calls&mdash;perhaps dynamically.
+			</p>
+			<p>
+			  The root nodes are the entry points of the
+			  package: functions that may be called from
+			  outside the package.
+			  There may be non-exported or anonymous
+			  functions among them if they are called
+			  dynamically from another package.
+			</p>
+			<p>
+			  Click a node to visit that function's source code.
+			  From there you can visit its callers by
+			  clicking its declaring <code>func</code>
+			  token.
+			</p>
+			<p>
+			  Functions may be omitted if they were
+			  determined to be unreachable in the
+			  particular programs or tests that were
+			  analyzed.
+			</p>
+			<!-- Zero means show all package entry points. -->
+			<ul style="margin-left: 0.5in" id="callgraph-0" class="treeview"></ul>
+		</div>
+		</div> <!-- #pkg-callgraph -->
+
+		
+		
+		
+		
+			
+			
+			<h2 id="BlockAssign">type <a href="/src/target/master.go?s=373:436#L4">BlockAssign</a>
+				<a class="permalink" href="#BlockAssign">&#xb6;</a>
+			</h2>
+			<p>
+BlockAssign is the slice element of return value of Master.Create(),
+it maps the BlockID to the pre-assigned set of replicas,
+which is a slice of DataNode addresses
+</p>
+
+			<pre>type BlockAssign struct {
+<span id="BlockAssign.BlockID"></span>    BlockID  <a href="/pkg/builtin/#string">string</a>
+<span id="BlockAssign.Replicas"></span>    Replicas []<a href="/pkg/builtin/#string">string</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="BlockKV">type <a href="/src/target/storage.go?s=109:163#L1">BlockKV</a>
+				<a class="permalink" href="#BlockKV">&#xb6;</a>
+			</h2>
+			<p>
+BlockKV is the request type of Storage.Set()
+</p>
+
+			<pre>type BlockKV struct {
+<span id="BlockKV.ID"></span>    ID   <a href="/pkg/builtin/#string">string</a>
+<span id="BlockKV.Data"></span>    Data <a href="/pkg/github.com/GIFTS-fs/GIFTS/">gifts</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/#Block">Block</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="FileBlocks">type <a href="/src/target/master.go?s=490:690#L10">FileBlocks</a>
+				<a class="permalink" href="#FileBlocks">&#xb6;</a>
+			</h2>
+			<p>
+FileBlocks is the return type of Master.Lookup()
+</p>
+
+			<pre>type FileBlocks struct {
+<span id="FileBlocks.Fsize"></span>    Fsize       <a href="/pkg/builtin/#int">int</a>           <span class="comment">// size of the file, to handle padding</span>
+<span id="FileBlocks.Assignments"></span>    Assignments []<a href="#BlockAssign">BlockAssign</a> <span class="comment">// Nodes[i] stores the addr of DataNode with ith Block, where len(Replicas) &gt;= 1</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="FileCreateReq">type <a href="/src/target/master.go?s=125:197#L1">FileCreateReq</a>
+				<a class="permalink" href="#FileCreateReq">&#xb6;</a>
+			</h2>
+			<p>
+FileCreateReq is the request type of Master.Create(),
+needed since Go RPC only support one argument
+</p>
+
+			<pre>type FileCreateReq struct {
+<span id="FileCreateReq.Fname"></span>    Fname   <a href="/pkg/builtin/#string">string</a>
+<span id="FileCreateReq.Fsize"></span>    Fsize   <a href="/pkg/builtin/#int">int</a>
+<span id="FileCreateReq.Rfactor"></span>    Rfactor <a href="/pkg/builtin/#uint">uint</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="ReplicateKV">type <a href="/src/target/storage.go?s=223:276#L2">ReplicateKV</a>
+				<a class="permalink" href="#ReplicateKV">&#xb6;</a>
+			</h2>
+			<p>
+ReplicateKV is the request type of Storage.Replicate()
+</p>
+
+			<pre>type ReplicateKV struct {
+<span id="ReplicateKV.ID"></span>    ID   <a href="/pkg/builtin/#string">string</a>
+<span id="ReplicateKV.Dest"></span>    Dest <a href="/pkg/builtin/#string">string</a>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+	
+
+	
+
+
+
+
+

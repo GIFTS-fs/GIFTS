@@ -1,0 +1,432 @@
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script type='text/javascript'>
+	document.ANALYSIS_DATA = ;
+	document.CALLGRAPH = ;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "./storage"</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				
+				
+			</div>
+		</div>
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+				<dd><a href="#pkg-constants">Constants</a></dd>
+			
+			
+			
+				
+				<dd><a href="#ServeRPC">func ServeRPC(s *Storage, addr string) (err error)</a></dd>
+			
+				
+				<dd><a href="#ServeRPCBlock">func ServeRPCBlock(s *Storage, addr string, readyChan chan bool) (err error)</a></dd>
+			
+			
+				
+				<dd><a href="#RPCStorage">type RPCStorage</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#NewRPCStorage">func NewRPCStorage(addr string) *RPCStorage</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RPCStorage.Get">func (s *RPCStorage) Get(id string, ret *gifts.Block) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RPCStorage.Replicate">func (s *RPCStorage) Replicate(kv *structure.ReplicateKV) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RPCStorage.Set">func (s *RPCStorage) Set(kv *structure.BlockKV) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#RPCStorage.Unset">func (s *RPCStorage) Unset(id string, ignore *bool) error</a></dd>
+				
+			
+				
+				<dd><a href="#Storage">type Storage</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#NewStorage">func NewStorage() *Storage</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Storage.CollectStat">func (s *Storage) CollectStat()</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Storage.Get">func (s *Storage) Get(id string, ret *gifts.Block) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Storage.Replicate">func (s *Storage) Replicate(kv *structure.ReplicateKV, ignore *bool) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Storage.Set">func (s *Storage) Set(kv *structure.BlockKV, ignore *bool) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Storage.TrapSignal">func (s *Storage) TrapSignal(prefix string, sigsChan chan os.Signal, done chan bool)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="#Storage.Unset">func (s *Storage) Unset(id string, ignore *bool) error</a></dd>
+				
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h3>Package files</h3>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="/src/target/rpcstorage.go">rpcstorage.go</a>
+			
+				<a href="/src/target/storage.go">storage.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		<div id="pkg-callgraph" class="toggle" style="display: none">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Internal Call Graph section">Internal call graph ▹</h2>
+		</div> <!-- .expanded -->
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Internal Call Graph section">Internal call graph ▾</h2>
+			<p>
+			  In the call graph viewer below, each node
+			  is a function belonging to this package
+			  and its children are the functions it
+			  calls&mdash;perhaps dynamically.
+			</p>
+			<p>
+			  The root nodes are the entry points of the
+			  package: functions that may be called from
+			  outside the package.
+			  There may be non-exported or anonymous
+			  functions among them if they are called
+			  dynamically from another package.
+			</p>
+			<p>
+			  Click a node to visit that function's source code.
+			  From there you can visit its callers by
+			  clicking its declaring <code>func</code>
+			  token.
+			</p>
+			<p>
+			  Functions may be omitted if they were
+			  determined to be unreachable in the
+			  particular programs or tests that were
+			  analyzed.
+			</p>
+			<!-- Zero means show all package entry points. -->
+			<ul style="margin-left: 0.5in" id="callgraph-0" class="treeview"></ul>
+		</div>
+		</div> <!-- #pkg-callgraph -->
+
+		
+			<h2 id="pkg-constants">Constants</h2>
+			
+				
+				<pre>const (
+    <span class="comment">// RPCPathStorage the path that Storage listens to</span>
+    <span id="RPCPathStorage">RPCPathStorage</span> = &#34;/_gifts_storage_&#34;
+)</pre>
+			
+		
+		
+		
+			
+			
+			<h2 id="ServeRPC">func <a href="/src/target/storage.go?s=1886:1936#L79">ServeRPC</a>
+				<a class="permalink" href="#ServeRPC">&#xb6;</a>
+			</h2>
+			<pre>func ServeRPC(s *<a href="#Storage">Storage</a>, addr <a href="/pkg/builtin/#string">string</a>) (err <a href="/pkg/builtin/#error">error</a>)</pre>
+			<p>
+ServeRPC makes the raw Storage accessible via RPC at the specified IP
+address and port.  It internally starts the server in a go routine and
+returns.
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="ServeRPCBlock">func <a href="/src/target/storage.go?s=977:1053#L39">ServeRPCBlock</a>
+				<a class="permalink" href="#ServeRPCBlock">&#xb6;</a>
+			</h2>
+			<pre>func ServeRPCBlock(s *<a href="#Storage">Storage</a>, addr <a href="/pkg/builtin/#string">string</a>, readyChan chan <a href="/pkg/builtin/#bool">bool</a>) (err <a href="/pkg/builtin/#error">error</a>)</pre>
+			<p>
+ServeRPCBlock makes the raw Storage accessible via RPC at the specified IP
+address and port.  It blocks and does not return.
+</p>
+
+			
+			
+
+		
+		
+			
+			
+			<h2 id="RPCStorage">type <a href="/src/target/rpcstorage.go?s=187:270#L1">RPCStorage</a>
+				<a class="permalink" href="#RPCStorage">&#xb6;</a>
+			</h2>
+			<p>
+RPCStorage is a concurrency-safe key-value store accessible via RPC.
+</p>
+
+			<pre>type RPCStorage struct {
+<span id="RPCStorage.Addr"></span>    Addr   <a href="/pkg/builtin/#string">string</a>
+<span id="RPCStorage.Logger"></span>    Logger *<a href="/pkg/github.com/GIFTS-fs/GIFTS/">gifts</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/#Logger">Logger</a>
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="NewRPCStorage">func <a href="/src/target/rpcstorage.go?s=407:450#L9">NewRPCStorage</a>
+					<a class="permalink" href="#NewRPCStorage">&#xb6;</a>
+				</h3>
+				<pre>func NewRPCStorage(addr <a href="/pkg/builtin/#string">string</a>) *<a href="#RPCStorage">RPCStorage</a></pre>
+				<p>
+NewRPCStorage creates a client that allows you to access a raw Storage node
+that is accessible via RPC at the specified address.
+</p>
+
+				
+				
+			
+
+			
+				
+				<h3 id="RPCStorage.Get">func (*RPCStorage) <a href="/src/target/rpcstorage.go?s=1519:1578#L53">Get</a>
+					<a class="permalink" href="#RPCStorage.Get">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#RPCStorage">RPCStorage</a>) Get(id <a href="/pkg/builtin/#string">string</a>, ret *<a href="/pkg/github.com/GIFTS-fs/GIFTS/">gifts</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/#Block">Block</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Get the data associated with the block&#39;s ID
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="RPCStorage.Replicate">func (*RPCStorage) <a href="/src/target/rpcstorage.go?s=2346:2409#L91">Replicate</a>
+					<a class="permalink" href="#RPCStorage.Replicate">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#RPCStorage">RPCStorage</a>) Replicate(kv *<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#ReplicateKV">ReplicateKV</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Replicate the specified block to the destination Storage node
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="RPCStorage.Set">func (*RPCStorage) <a href="/src/target/rpcstorage.go?s=774:827#L21">Set</a>
+					<a class="permalink" href="#RPCStorage.Set">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#RPCStorage">RPCStorage</a>) Set(kv *<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#BlockKV">BlockKV</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Set the data associated with the block&#39;s ID
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="RPCStorage.Unset">func (*RPCStorage) <a href="/src/target/rpcstorage.go?s=3067:3124#L123">Unset</a>
+					<a class="permalink" href="#RPCStorage.Unset">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#RPCStorage">RPCStorage</a>) Unset(id <a href="/pkg/builtin/#string">string</a>, ignore *<a href="/pkg/builtin/#bool">bool</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Unset the data associated with the block&#39;s ID
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="Storage">type <a href="/src/target/storage.go?s=368:669#L15">Storage</a>
+				<a class="permalink" href="#Storage">&#xb6;</a>
+			</h2>
+			<p>
+Storage is a concurrency-safe key-value store.
+</p>
+
+			<pre>type Storage struct {
+<span id="Storage.Logger"></span>    Logger *<a href="/pkg/github.com/GIFTS-fs/GIFTS/">gifts</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/#Logger">Logger</a> <span class="comment">// PRODUCTION: banish this</span>
+
+    <span class="comment">// stat</span>
+<span id="Storage.StatEnabled"></span>    StatEnabled <a href="/pkg/builtin/#bool">bool</a>
+    <span class="comment">// contains filtered or unexported fields</span>
+}</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+				
+				<h3 id="NewStorage">func <a href="/src/target/storage.go?s=712:738#L31">NewStorage</a>
+					<a class="permalink" href="#NewStorage">&#xb6;</a>
+				</h3>
+				<pre>func NewStorage() *<a href="#Storage">Storage</a></pre>
+				<p>
+NewStorage creates a new storage node
+</p>
+
+				
+				
+			
+
+			
+				
+				<h3 id="Storage.CollectStat">func (*Storage) <a href="/src/target/storage.go?s=4483:4514#L181">CollectStat</a>
+					<a class="permalink" href="#Storage.CollectStat">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#Storage">Storage</a>) CollectStat()</pre>
+				<p>
+WARN: the counter are by no means accurate
+due to many a context switch envolved
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="Storage.Get">func (*Storage) <a href="/src/target/storage.go?s=2447:2503#L101">Get</a>
+					<a class="permalink" href="#Storage.Get">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#Storage">Storage</a>) Get(id <a href="/pkg/builtin/#string">string</a>, ret *<a href="/pkg/github.com/GIFTS-fs/GIFTS/">gifts</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/#Block">Block</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Get gets the data associated with the block&#39;s ID
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="Storage.Replicate">func (*Storage) <a href="/src/target/storage.go?s=3031:3105#L127">Replicate</a>
+					<a class="permalink" href="#Storage.Replicate">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#Storage">Storage</a>) Replicate(kv *<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#ReplicateKV">ReplicateKV</a>, ignore *<a href="/pkg/builtin/#bool">bool</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Replicate the specified block to the destination Storage node
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="Storage.Set">func (*Storage) <a href="/src/target/storage.go?s=2186:2250#L91">Set</a>
+					<a class="permalink" href="#Storage.Set">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#Storage">Storage</a>) Set(kv *<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/">structure</a>.<a href="/pkg/github.com/GIFTS-fs/GIFTS/structure/#BlockKV">BlockKV</a>, ignore *<a href="/pkg/builtin/#bool">bool</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Set sets the data associated with the block&#39;s ID
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="Storage.TrapSignal">func (*Storage) <a href="/src/target/storage.go?s=5330:5414#L220">TrapSignal</a>
+					<a class="permalink" href="#Storage.TrapSignal">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#Storage">Storage</a>) TrapSignal(prefix <a href="/pkg/builtin/#string">string</a>, sigsChan chan <a href="/pkg/os/">os</a>.<a href="/pkg/os/#Signal">Signal</a>, done chan <a href="/pkg/builtin/#bool">bool</a>)</pre>
+				<p>
+TrapSignal traps the system signal and send true to done
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="Storage.Unset">func (*Storage) <a href="/src/target/storage.go?s=3883:3937#L153">Unset</a>
+					<a class="permalink" href="#Storage.Unset">&#xb6;</a>
+				</h3>
+				<pre>func (s *<a href="#Storage">Storage</a>) Unset(id <a href="/pkg/builtin/#string">string</a>, ignore *<a href="/pkg/builtin/#bool">bool</a>) <a href="/pkg/builtin/#error">error</a></pre>
+				<p>
+Unset deletes the data associated with the block&#39;s ID
+</p>
+
+				
+				
+				
+			
+		
+	
+
+	
+
+
+
+
+
